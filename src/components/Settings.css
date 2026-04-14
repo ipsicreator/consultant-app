@@ -1,0 +1,254 @@
+.settings-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.settings-layout {
+  flex: 1;
+  display: flex;
+  gap: 24px;
+  padding-right: 12px;
+  overflow: hidden;
+}
+
+.settings-menu {
+  width: 250px;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.settings-menu h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.settings-menu ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-menu li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.settings-menu li:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+}
+
+.settings-menu li.active {
+  background: rgba(79, 70, 229, 0.2);
+  color: var(--primary-color);
+  font-weight: bold;
+}
+
+.settings-content {
+  flex: 1;
+  padding: 32px;
+  overflow-y: auto;
+}
+
+.content-header {
+  margin-bottom: 32px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 20px;
+}
+
+.content-header h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.4rem;
+}
+
+.content-header p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.form-builder-list {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.list-headers, .field-row {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.list-headers {
+  background: rgba(255, 255, 255, 0.02);
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  border-radius: 12px 12px 0 0;
+}
+
+.field-row:last-child {
+  border-bottom: none;
+}
+
+.field-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.field-row.system-row {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.col-drag { width: 40px; color: var(--text-muted); }
+.drag-handle { cursor: grab; }
+
+.col-label { flex: 2; display: flex; align-items: center; gap: 8px; }
+.col-label strong { font-size: 1rem; color: white; }
+
+.sys-badge {
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #ccc;
+}
+
+.col-type { flex: 1.5; }
+.type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(79, 70, 229, 0.15);
+  color: #818cf8;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  border: 1px solid rgba(79, 70, 229, 0.3);
+}
+
+.col-req { width: 100px; }
+.req-text { font-size: 0.85rem; font-weight: bold; }
+.req-text.yes { color: #f43f5e; }
+.req-text.no { color: var(--text-muted); }
+
+.col-action { width: 120px; text-align: right; }
+.locked-text { font-size: 0.8rem; color: #6b7280; }
+
+.icon-btn.danger {
+  color: #f43f5e;
+}
+
+.icon-btn.danger:hover {
+  background: rgba(244, 63, 94, 0.1);
+}
+
+/* Add New Field Workspace */
+.add-trigger-btn {
+  width: 100%;
+  padding: 16px;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: var(--text-muted);
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.add-trigger-btn:hover {
+  border-color: var(--primary-color);
+  color: white;
+  background: rgba(79, 70, 229, 0.05);
+}
+
+.add-field-workspace {
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 24px;
+  border-radius: 12px;
+}
+
+.add-field-workspace h4 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #34d399;
+}
+
+.add-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.add-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.add-group label {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-weight: bold;
+}
+
+.add-group input[type="text"], .add-group select {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 16px;
+  border-radius: 8px;
+  color: white;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.add-group input:focus, .add-group select:focus {
+  border-color: #34d399;
+}
+
+.add-group select {
+  cursor: pointer;
+}
+
+.checkbox-align {
+  margin-top: 8px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  color: white !important;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #34d399;
+}
+
+.add-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}

@@ -1,0 +1,286 @@
+.coaching-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.coaching-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.coaching-meta h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.tag-status.process {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.coaching-workspace {
+  display: flex;
+  gap: 24px;
+  flex: 1;
+  overflow: hidden;
+  padding-bottom: 24px;
+  padding-right: 12px;
+}
+
+/* Document Panel */
+.document-panel {
+  flex: 3;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.doc-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.doc-icon {
+  color: var(--accent-color);
+}
+
+.doc-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.ms-auto {
+  margin-left: auto;
+}
+
+.doc-viewer-mock {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 32px;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+}
+
+.doc-page {
+  background: white;
+  width: 100%;
+  max-width: 800px;
+  min-height: 1000px;
+  padding: 48px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  color: #333;
+}
+
+.doc-title {
+  color: #111;
+  font-size: 1.6rem;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+
+.doc-page h4 {
+  color: #1f2937;
+  margin-top: 24px;
+  margin-bottom: 12px;
+  font-size: 1.1rem;
+}
+
+.doc-page p {
+  color: #4b5563;
+  line-height: 1.8;
+  margin-bottom: 16px;
+}
+
+.highlight-text {
+  background: rgba(56, 189, 248, 0.15);
+  border-left: 4px solid var(--accent-color);
+  padding: 8px 16px;
+  border-radius: 0 4px 4px 0;
+}
+
+/* Feedback Panel */
+.feedback-panel {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ai-coach-suggestion {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.15), rgba(16, 185, 129, 0.05));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 20px;
+  border-radius: 16px 16px 0 0;
+}
+
+.coach-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.coach-header svg {
+  color: var(--accent-color);
+}
+
+.coach-header h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--accent-color);
+}
+
+.ai-coach-suggestion p {
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+}
+
+.suggestion-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.2s;
+}
+
+.suggestion-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.chat-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.chat-history {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.chat-bubble {
+  display: flex;
+  flex-direction: column;
+  max-width: 85%;
+}
+
+.chat-bubble.student {
+  align-self: flex-start;
+}
+
+.chat-bubble.consultant {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.chat-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.chat-bubble.consultant .chat-info {
+  flex-direction: row-reverse;
+}
+
+.student-avatar {
+  background: var(--warning-color);
+  color: #000;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+
+.chat-info .name {
+  font-size: 0.8rem;
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+.chat-info .time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.chat-text {
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.chat-bubble.student .chat-text {
+  background: rgba(255, 255, 255, 0.1);
+  border-top-left-radius: 4px;
+  color: var(--text-main);
+}
+
+.chat-bubble.consultant .chat-text {
+  background: var(--primary-color);
+  border-top-right-radius: 4px;
+  color: white;
+}
+
+.chat-input-area {
+  padding: 16px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.chat-input-area input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 16px;
+  border-radius: 20px;
+  color: white;
+  outline: none;
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+}
+
+.chat-input-area input:focus {
+  border-color: var(--accent-color);
+}
+
+.send-btn {
+  background: var(--primary-color);
+  border: none;
+  color: white;
+}
+
+.send-btn:hover {
+  background: var(--primary-hover);
+}
