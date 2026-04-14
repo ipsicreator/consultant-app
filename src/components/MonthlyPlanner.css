@@ -53,10 +53,15 @@
 }
 
 .report-brand {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #4b5563;
-  margin-bottom: 12px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.doc-brand-logo {
+  max-width: 200px;
+  height: auto;
+  object-fit: contain;
 }
 
 .report-title {

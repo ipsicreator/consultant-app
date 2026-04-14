@@ -46,7 +46,9 @@ const MonthlyPlanner: React.FC<MonthlyPlannerProps> = () => {
       {/* 보고서 본문 (화면 및 인쇄용) */}
       <div className="printable-report">
         <div className="report-header">
-          <div className="report-brand">대치수프리마 입시&코칭센터</div>
+          <div className="report-brand">
+            <img src="/logo.png" alt="대치수프리마 로고" className="doc-brand-logo" />
+          </div>
           <h1 className="report-title">{currentMonth} 활동 점검표</h1>
           
           <div className="student-profile-bar">
