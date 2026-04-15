@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { UserPlus, UserMinus, ArrowRightLeft, Shield, Search, MoreHorizontal } from 'lucide-react';
+import { UserPlus, ArrowRightLeft, Shield, Search, MoreHorizontal } from 'lucide-react';
 import './AdminDashboard.css';
 
 const AdminDashboard: React.FC = () => {
-  const [consultants, setConsultants] = useState([
+  const [consultants] = useState([
     { id: 1, name: '크리스 대표', role: '수석 컨설턴트', students: 24, status: '활성' },
     { id: 2, name: '이현정', role: '일반 컨설턴트', students: 12, status: '활성' },
     { id: 3, name: '박민수', role: '일반 컨설턴트', students: 8, status: '휴직' },

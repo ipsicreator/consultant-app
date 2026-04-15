@@ -1,13 +1,12 @@
 import React from 'react';
 import { 
-  LineChart, 
   Users, 
   FileText, 
-  MessageSquare,
   Settings,
   LogOut,
   Building,
-  Calendar
+  Calendar,
+  Lightbulb
 } from 'lucide-react';
 import './Sidebar.css';
 
@@ -30,28 +29,24 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
         <ul>
           <li className={currentView === 'dashboard' ? 'active' : ''} onClick={() => onNavigate('dashboard')}>
             <Users size={20} />
-            <span>수강생 관리</span>
+            <span>학생 CRM 관리 (등록/분류)</span>
           </li>
           <li className={currentView === 'student' ? 'active' : ''} onClick={() => onNavigate('student')}>
             <FileText size={20} />
-            <span>생기부 분석</span>
+            <span>빠른 생기부 스캔 (미등록)</span>
           </li>
-          <li className={currentView === 'coaching' ? 'active' : ''} onClick={() => onNavigate('coaching')}>
-            <MessageSquare size={20} />
-            <span>탐구 코칭</span>
-            <span className="badge">3</span>
-          </li>
-          <li className={currentView === 'admin' ? 'active' : ''} onClick={() => onNavigate('admin')}>
-            <Building size={20} />
-            <span>컨설턴트/학생 매칭</span>
+          <li className={currentView === 'exploration' ? 'active' : ''} onClick={() => onNavigate('exploration')}>
+            <Lightbulb size={20} />
+            <span>탐구/수행평가 (AI 브레인)</span>
+            <span className="badge">N</span>
           </li>
           <li className={currentView === 'planner' ? 'active' : ''} onClick={() => onNavigate('planner')}>
             <Calendar size={20} />
-            <span>상담 일지 & 출력</span>
+            <span>종합 보고서 인쇄소</span>
           </li>
-          <li>
-            <LineChart size={20} />
-            <span>리포트 통계</span>
+          <li className={currentView === 'admin' ? 'active' : ''} onClick={() => onNavigate('admin')}>
+            <Building size={20} />
+            <span>컨설턴트 등록/배정</span>
           </li>
         </ul>
       </nav>

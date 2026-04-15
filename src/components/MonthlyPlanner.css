@@ -210,6 +210,10 @@
     display: none !important;
   }
   
+  .print-only {
+    display: block !important;
+  }
+
   /* 메인 콘텐츠 영역 여백 초기화 */
   .main-content {
     padding: 0 !important;
@@ -233,4 +237,31 @@
   .section-heading {
     border-left-color: #000; /* 흑백 대비용 기본 검정 */
   }
+
+  .page-break-avoid {
+    page-break-inside: avoid;
+  }
+}
+
+/* 컨설턴트 의견 입력 필드 UI */
+.consultant-opinion-input {
+  width: 100%;
+  background-color: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  color: #f8fafc;
+  padding: 16px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 1rem;
+  resize: vertical;
+  margin-bottom: 20px;
+}
+.consultant-opinion-input:focus {
+  outline: none;
+  border-color: #818cf8;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.print-only {
+  display: none;
 }
