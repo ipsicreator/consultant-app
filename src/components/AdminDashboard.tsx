@@ -1,100 +1,145 @@
-import React, { useState } from 'react';
-import { UserPlus, ArrowRightLeft, Shield, Search, MoreHorizontal } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { UserPlus, ArrowRightLeft, Shield, Search, MoreHorizontal, Users, UserCheck } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import './AdminDashboard.css';
 
 const AdminDashboard: React.FC = () => {
-  const [consultants] = useState([
-    { id: 1, name: '크리스 대표', role: '수석 컨설턴트', students: 24, status: '활성' },
-    { id: 2, name: '이현정', role: '일반 컨설턴트', students: 12, status: '활성' },
-    { id: 3, name: '박민수', role: '일반 컨설턴트', students: 8, status: '휴직' },
-  ]);
+  const [consultants, setConsultants] = useState<any[]>([]);
+  const [academyId, setAcademyId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAdminData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('academy_id')
+          .eq('id', user.id)
+          .single();
+        
+        if (profile?.academy_id) {
+          setAcademyId(profile.academy_id);
+          // 학원 소속 컨설턴트 목록 가져오기
+          const { data: staff } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('academy_id', profile.academy_id)
+            .eq('role', 'consultant');
+          
+          if (staff) setConsultants(staff);
+        }
+      }
+      setLoading(false);
+    };
+    fetchAdminData();
+  }, []);
 
   return (
-    <div className="admin-dashboard">
-      <div className="admin-header glass-panel">
+    <div className="admin-dashboard fade-in">
+      <header className="admin-header glass-panel">
         <div className="title-area">
           <Shield size={24} className="title-icon" />
-          <h2>컨설턴트 및 원생 매칭 관리 (마스터 뷰)</h2>
+          <h2>학원 운영 및 컨설턴트 관리</h2>
         </div>
         <div className="admin-actions">
           <button className="btn-primary">
             <UserPlus size={18} />
-            <span>신규 컨설턴트 등록</span>
+            <span>신규 컨설턴트 초대</span>
           </button>
         </div>
-      </div>
+      </header>
 
-      <div className="admin-content">
+      <div className="admin-content-grid">
+        {/* 컨설턴트 현황 섹션 */}
         <div className="consultant-list-section glass-panel">
-          <div className="section-toolbar">
+          <div className="section-header">
+            <div className="header-left">
+              <Users size={20} />
+              <h3>소속 컨설턴트 현황</h3>
+            </div>
             <div className="search-bar small">
-              <Search size={18} className="search-icon" />
-              <input type="text" placeholder="컨설턴트명 검색..." />
+              <Search size={16} />
+              <input type="text" placeholder="성함으로 검색..." />
             </div>
           </div>
 
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>컨설턴트 명 / 직급</th>
-                <th>상태</th>
-                <th>배정된 학생 수</th>
-                <th>매칭 관리</th>
-                <th>권한 설정</th>
-              </tr>
-            </thead>
-            <tbody>
-              {consultants.map((c) => (
-                <tr key={c.id}>
-                  <td>
-                    <div className="c-name">
-                      <strong>{c.name}</strong>
-                      <span>{c.role}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <span className={`status-badge ${c.status === '활성' ? 'success' : 'warning'}`}>
-                      {c.status}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="student-count">
-                      <strong>{c.students}</strong> 명
-                    </div>
-                  </td>
-                  <td>
-                    <button className="btn-secondary small flex-center">
-                      <ArrowRightLeft size={16} />
-                      원생 할당/변경
-                    </button>
-                  </td>
-                  <td>
-                    <button className="icon-btn secondary outline">
-                      <MoreHorizontal size={18} />
-                    </button>
-                  </td>
+          <div className="table-container">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>컨설턴트 성함</th>
+                  <th>이메일</th>
+                  <th>관리 학생 수</th>
+                  <th>상태</th>
+                  <th>권한</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr><td colSpan={5} className="empty-state">로딩 중...</td></tr>
+                ) : consultants.length === 0 ? (
+                  <tr><td colSpan={5} className="empty-state">등록된 컨설턴트가 없습니다.</td></tr>
+                ) : (
+                  consultants.map((c) => (
+                    <tr key={c.id}>
+                      <td>
+                        <div className="c-name">
+                          <strong>{c.name || '이름 미설정'}</strong>
+                          <span>{c.role === 'consultant' ? '일반 컨설턴트' : '부원장'}</span>
+                        </div>
+                      </td>
+                      <td>{c.email}</td>
+                      <td>
+                        <div className="student-count">
+                          <strong>{Math.floor(Math.random() * 20)}</strong> 명
+                        </div>
+                      </td>
+                      <td>
+                        <span className="status-badge success">활동 중</span>
+                      </td>
+                      <td>
+                        <button className="icon-btn secondary outline">
+                          <MoreHorizontal size={18} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
+        {/* 빠른 배정 패널 */}
         <div className="matching-panel glass-panel">
           <div className="panel-header">
-            <h3><ArrowRightLeft size={18} /> 빠른 원생 매칭 (드래그 앤 드롭)</h3>
+            <h3><ArrowRightLeft size={18} /> 학생-컨설턴트 빠른 매칭</h3>
           </div>
           <div className="matching-workspace">
             <div className="pool-col">
-              <h4>미배정 신규 원생 (대기열)</h4>
-              <div className="drag-item">이지훈 (휘문고 1학년) - 의예과 지망</div>
-              <div className="drag-item">최윤서 (숙명여고 2학년) - 경영학과 지망</div>
+              <h4>미배정 신규 학생</h4>
+              <div className="drag-item">이강인 (미래고 1학년)</div>
+              <div className="drag-item">손흥민 (토트넘고 2학년)</div>
+            </div>
+            <div className="pool-arrow">
+              <ArrowRightLeft size={24} />
             </div>
             <div className="pool-col">
-              <h4>크리스 대표 (수석) 배정 목록</h4>
-              <div className="drag-item assigned">김지민 (서울과학고 2학년)</div>
-              <div className="drag-item assigned">박서연 (강남고 1학년)</div>
+              <h4>담당 컨설턴트 선택</h4>
+              <div className="consultant-select-item">
+                <UserCheck size={16} />
+                <span>이리나 팀장 (배정: 12명)</span>
+              </div>
+              <div className="consultant-select-item">
+                <UserCheck size={16} />
+                <span>김현우 컨설턴트 (배정: 8명)</span>
+              </div>
             </div>
           </div>
+          <button className="btn-primary full-width mt-20">
+            매칭 설정 저장하기
+          </button>
         </div>
       </div>
     </div>

@@ -3,10 +3,11 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow: hidden;
 }
 
 .admin-header {
-  height: 80px;
+  height: 70px;
   margin-bottom: 24px;
   display: flex;
   align-items: center;
@@ -26,26 +27,46 @@
 
 .title-area h2 {
   margin: 0;
-  font-size: 1.4rem;
+  font-size: 1.3rem;
+  font-weight: 700;
 }
 
-.admin-content {
+.admin-content-grid {
   flex: 1;
-  overflow-y: auto;
-  padding-right: 12px;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 400px;
   gap: 24px;
+  overflow: hidden;
+  padding-bottom: 24px;
 }
 
 .consultant-list-section {
+  display: flex;
+  flex-direction: column;
   padding: 24px;
+  overflow: hidden;
 }
 
-.section-toolbar {
-  margin-bottom: 20px;
+.section-header {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-left h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.header-left svg {
+  color: var(--accent-color);
 }
 
 .admin-table {
@@ -85,80 +106,77 @@
 }
 
 .student-count strong {
-  font-size: 1.2rem;
-}
-
-.flex-center {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  justify-content: center;
-}
-
-.icon-btn.outline {
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: transparent;
-}
-
-.icon-btn.outline:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.matching-panel {
-  padding: 24px;
-}
-
-.panel-header {
-  margin-bottom: 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding-bottom: 16px;
-}
-
-.panel-header h3 {
-  margin: 0;
   font-size: 1.1rem;
+  color: var(--text-main);
+}
+
+/* Matching Panel */
+.matching-panel {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  padding: 24px;
 }
 
 .matching-workspace {
   display: flex;
-  gap: 24px;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
 }
 
 .pool-col {
-  flex: 1;
   background: rgba(0, 0, 0, 0.2);
   border-radius: 12px;
-  padding: 20px;
-  min-height: 300px;
+  padding: 16px;
   border: 1px dashed rgba(255, 255, 255, 0.1);
 }
 
 .pool-col h4 {
   margin-top: 0;
-  margin-bottom: 16px;
-  font-size: 0.95rem;
+  margin-bottom: 12px;
+  font-size: 0.9rem;
   color: var(--text-muted);
 }
 
 .drag-item {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 16px;
+  padding: 12px;
   border-radius: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
   cursor: grab;
-  transition: transform 0.2s, background 0.2s;
 }
 
-.drag-item:hover {
-  transform: translateY(-2px);
-  background: rgba(255, 255, 255, 0.1);
+.pool-arrow {
+  display: flex;
+  justify-content: center;
+  color: var(--text-muted);
+  padding: 8px 0;
 }
 
-.drag-item.assigned {
-  background: rgba(16, 185, 129, 0.1);
-  border-color: rgba(16, 185, 129, 0.3);
+.consultant-select-item {
+  background: rgba(56, 189, 248, 0.05);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  padding: 12px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.consultant-select-item:hover {
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.consultant-select-item span {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.mt-20 {
+  margin-top: 20px;
 }

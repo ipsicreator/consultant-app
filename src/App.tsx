@@ -7,6 +7,7 @@ import AdminDashboard from './components/AdminDashboard';
 import MonthlyPlanner from './components/MonthlyPlanner';
 import Settings from './components/Settings';
 import Login from './components/Login';
+import LicenseGuard from './components/LicenseGuard';
 import { supabase } from './lib/supabase';
 
 function App() {
@@ -45,38 +46,40 @@ function App() {
   }
 
   return (
-    <div className="app-container">
-      <Sidebar 
-        currentView={currentView} 
-        onNavigate={handleNavigate} 
-      />
-      <div className="main-content">
-        {currentView === 'dashboard' && (
-          <Dashboard onSelectStudent={handleStudentSelect} />
-        )}
-        {currentView === 'student' && (
-          <StudentDetail 
-            studentData={selectedStudent}
-            onBack={() => setCurrentView('dashboard')}
-          />
-        )}
-        {currentView === 'exploration' && (
-          <ExplorationModule 
-            onBack={() => setCurrentView('dashboard')} 
-            studentData={selectedStudent}
-          />
-        )}
-        {currentView === 'admin' && (
-          <AdminDashboard />
-        )}
-        {currentView === 'planner' && (
-          <MonthlyPlanner />
-        )}
-        {currentView === 'settings' && (
-          <Settings />
-        )}
+    <LicenseGuard>
+      <div className="app-container">
+        <Sidebar 
+          currentView={currentView} 
+          onNavigate={handleNavigate} 
+        />
+        <div className="main-content">
+          {currentView === 'dashboard' && (
+            <Dashboard onSelectStudent={handleStudentSelect} />
+          )}
+          {currentView === 'student' && (
+            <StudentDetail 
+              studentData={selectedStudent}
+              onBack={() => setCurrentView('dashboard')}
+            />
+          )}
+          {currentView === 'exploration' && (
+            <ExplorationModule 
+              onBack={() => setCurrentView('dashboard')} 
+              studentData={selectedStudent}
+            />
+          )}
+          {currentView === 'admin' && (
+            <AdminDashboard />
+          )}
+          {currentView === 'planner' && (
+            <MonthlyPlanner />
+          )}
+          {currentView === 'settings' && (
+            <Settings />
+          )}
+        </div>
       </div>
-    </div>
+    </LicenseGuard>
   );
 }
 
