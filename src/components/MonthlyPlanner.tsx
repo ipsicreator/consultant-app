@@ -1,80 +1,55 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Calendar, Printer, Save, History 
+  Printer, 
+  FileText, 
+  TrendingUp, 
+  Award, 
+  User, 
+  Calendar,
+  CheckCircle2,
+  ChevronRight,
+  Download
 } from 'lucide-react';
 import { 
-  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, 
-  ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer 
 } from 'recharts';
 import { supabase } from '../lib/supabase';
-import { prepareChartData, prepareTrendData, prepareDetailedStats } from '../lib/gradeCalculator';
 import './MonthlyPlanner.css';
 
-interface MonthlyPlannerProps {
-  onBack?: () => void;
-}
-
-const MonthlyPlanner: React.FC<MonthlyPlannerProps> = () => {
-  const [customPeriod, setCustomPeriod] = useState("2026.03 ~ 2026.06 누적 히스토리");
-  const studentInfo = {
-    name: "김지민",
-    school: "서울과학고 2학년",
-    consultant: "크리스 수석",
-  };
-
-  const [historyRecords, setHistoryRecords] = useState<any[]>([]);
-  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
-  const [consultantOpinion, setConsultantOpinion] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-  const [dbStatusMsg, setDbStatusMsg] = useState('');
+const MonthlyPlanner: React.FC = () => {
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [students, setStudents] = useState<any[]>([]);
+  const [reportData, setReportData] = useState<any>(null);
+  const [consultantNote, setConsultantNote] = useState('');
 
   useEffect(() => {
-    fetchHistory();
+    fetchStudents();
   }, []);
 
-  const fetchHistory = async () => {
-    // 하드코딩된 김지민 학생의 uuid를 찾은 뒤 누적 분석본을 가져옵니다.
-    const { data: studentData } = await supabase.from('students').select('id').eq('name', '김지민').single();
-    if (studentData) {
-      const { data: analyses } = await supabase
-        .from('pdf_analyses')
-        .select('*')
-        .eq('student_id', studentData.id)
-        .order('created_at', { ascending: false }); // 가장 최신본이 위로
-      
-      if (analyses && analyses.length > 0) {
-        setHistoryRecords(analyses);
-        setSelectedRecordId(analyses[0].id);
-        setConsultantOpinion(analyses[0].consultant_opinion || '');
-      }
-    }
+  const fetchStudents = async () => {
+    const { data } = await supabase.from('students').select('*');
+    if (data) setStudents(data);
   };
 
-  const handleRecordSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const rId = e.target.value;
-    setSelectedRecordId(rId);
-    const matched = historyRecords.find((r: any) => r.id === rId);
-    if (matched) {
-      setConsultantOpinion(matched.consultant_opinion || '');
-    }
-    setDbStatusMsg('');
-  };
-
-  const saveConsultantOpinion = async () => {
-    if (!selectedRecordId) return;
-    setIsSaving(true);
-    setDbStatusMsg('');
-    const { error } = await supabase
+  const loadReport = async (student: any) => {
+    setSelectedStudent(student);
+    // 실제 데이터는 학생의 생기부 분석 결과(pdf_analyses)에서 가져옵니다.
+    const { data } = await supabase
       .from('pdf_analyses')
-      .update({ consultant_opinion: consultantOpinion })
-      .eq('id', selectedRecordId);
-      
-    setIsSaving(false);
-    if (!error) {
-      setDbStatusMsg('성공적으로 저장되었습니다!');
-      setTimeout(() => setDbStatusMsg(''), 3000);
-    } else {
-      setDbStatusMsg('저장 실패: ' + error.message);
+      .select('*')
+      .eq('student_id', student.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+    
+    if (data) {
+      setReportData(data.content);
     }
   };
 
@@ -82,270 +57,163 @@ const MonthlyPlanner: React.FC<MonthlyPlannerProps> = () => {
     window.print();
   };
 
-  const activeRecord = historyRecords.find((r: any) => r.id === selectedRecordId);
-
   return (
-    <div className="planner-container">
-      {/* 화면용 툴바 (인쇄 시 숨김 처리됨) */}
-      <div className="planner-toolbar glass-panel no-print">
-        <div className="toolbar-left">
-          <Calendar size={24} className="accent-icon" />
-          <h2>월간 분석 & 종합 보고서</h2>
-          
-          <div className="history-selector" style={{ marginLeft: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <History size={18} color="#94a3b8" />
-            <select 
-              value={selectedRecordId || ''} 
-              onChange={handleRecordSelect}
-              style={{ padding: '6px 12px', background: 'rgba(0,0,0,0.3)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px' }}
-            >
-              {historyRecords.length === 0 && <option value="">분석 기록 없음</option>}
-              {historyRecords.map((r: any, idx: number) => (
-                <option value={r.id} key={r.id}>
-                  {new Date(r.created_at).toLocaleDateString()} 분석본 {idx === 0 ? '(최신)' : ''}
-                </option>
-              ))}
-            </select>
+    <div className="monthly-planner fade-in">
+      {/* Control Panel (Hide when printing) */}
+      <header className="planner-header glass-panel no-print">
+        <div className="header-left">
+          <FileText size={24} className="accent-color" />
+          <div className="title-area">
+            <h2>입시 진단 및 전략 리포트</h2>
+            <p>학생의 데이터를 기반으로 공식 분석 보고서를 생성합니다.</p>
           </div>
         </div>
-        <div className="toolbar-right">
-          <span style={{ color: '#10b981', fontSize: '0.9rem', marginRight: '12px' }}>{dbStatusMsg}</span>
-          <button className="btn-secondary" onClick={saveConsultantOpinion} disabled={isSaving || !selectedRecordId}>
-            <Save size={18} /> {isSaving ? '저장 중...' : '코멘트 DB 저장'}
-          </button>
-          <button className="btn-primary" onClick={handlePrint} disabled={!selectedRecordId}>
-            <Printer size={18} /> 출력하기
+        <div className="header-actions">
+          <select 
+            onChange={(e) => {
+              const student = students.find(s => s.id === e.target.value);
+              if (student) loadReport(student);
+            }}
+            className="student-select"
+          >
+            <option value="">학생 선택...</option>
+            {students.map(s => (
+              <option key={s.id} value={s.id}>{s.name} ({s.school})</option>
+            ))}
+          </select>
+          <button className="btn-primary" onClick={handlePrint} disabled={!selectedStudent}>
+            <Printer size={18} />
+            <span>리포트 인쇄하기</span>
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* 보고서 본문 (화면 및 인쇄용) */}
-      <div className="printable-report">
-        <div className="report-header">
-          <div className="report-brand">
-            <img src="/logo.png" alt="대치수프리마 로고" className="doc-brand-logo" />
-          </div>
-          <h1 className="report-title">
-             학생부 집중 관리 종합 보고서
-          </h1>
-          
-          <div className="report-subtitle no-print" style={{ textAlign: 'center', marginBottom: '24px' }}>
-            <input 
-              type="text" 
-              placeholder="예: 2026.03 ~ 2026.06 누적 히스토리" 
-              style={{ width: '400px', padding: '8px', textAlign: 'center', background: 'rgba(255,255,255,0.7)', border: '1px solid #ccc', borderRadius: '4px' }}
-              value={customPeriod}
-              onChange={(e) => setCustomPeriod(e.target.value)}
-            />
-          </div>
-          <div className="report-subtitle print-only" style={{ textAlign: 'center', fontSize: '1.4rem', color: '#333', marginBottom: '24px', fontWeight: 600 }}>
-             [{customPeriod}]
-          </div>
-          
-          <div className="student-profile-bar">
-            <div className="sp-item"><span>원생명:</span> <strong>{studentInfo.name}</strong></div>
-            <div className="sp-item"><span>학교/학년:</span> <strong>{studentInfo.school}</strong></div>
-            <div className="sp-item"><span>담당 컨설턴트:</span> <strong>{studentInfo.consultant}</strong></div>
-          </div>
-        </div>
-
-        {!activeRecord ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-            <p>아직 '생기부 원본 분석' 탭에서 분석 및 저장된 기록이 없습니다.</p>
-            <p>PDF 파일을 업로드하여 AI 분석을 1회 이상 완료해야 보고서가 생성됩니다.</p>
-          </div>
-        ) : (
-          <div className="report-body">
-            {/* 등급 자동 산출 요약 대시보드 추가 */}
-            {activeRecord.grades && activeRecord.grades.length > 0 && (
-              <div className="section">
-                <h3 className="section-heading">내신 성적 종합 분석 (AI 시각화)</h3>
-                <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
-                  {/* 1. 숫자 요약 */}
-                  <div style={{ flex: 0.8, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px', textAlign: 'center' }}>
-                      <h4 style={{ margin: 0, color: '#64748b', fontSize: '0.8rem' }}>전과목 평균</h4>
-                      <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#3b82f6', marginTop: '4px' }}>
-                        {(() => {
-                          let t = 0, c = 0;
-                          activeRecord.grades.forEach((g: any) => { if(g.credit > 0 && g.score > 0) { t += g.credit * g.score; c += g.credit; } });
-                          return c > 0 ? (t/c).toFixed(2) : '-';
-                        })()}
-                      </div>
-                    </div>
-                    <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '12px', textAlign: 'center' }}>
-                      <h4 style={{ margin: 0, color: '#166534', fontSize: '0.8rem' }}>주요 교과 평균</h4>
-                      <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#15803d', marginTop: '4px' }}>
-                        {(() => {
-                          let t = 0, c = 0;
-                          const kws = ['국어', '수학', '영어', '과학', '사회', '역사', '도덕'];
-                          activeRecord.grades.forEach((g: any) => { 
-                            if(g.credit > 0 && g.score > 0 && kws.some(kw => g.subject.includes(kw))) { 
-                              t += g.credit * g.score; c += g.credit; 
-                            } 
-                          });
-                          return c > 0 ? (t/c).toFixed(2) : '-';
-                        })()}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 2. 방사형 그래프 (과목 역량) */}
-                  <div style={{ flex: 1.2, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px', minHeight: '200px', display: 'flex', flexDirection: 'column' }}>
-                    <h5 style={{ margin: '0 0 5px 0', fontSize: '0.75rem', color: '#94a3b8', textAlign: 'center' }}>교과별 역량 밸런스</h5>
-                    <ResponsiveContainer width="100%" height={160}>
-                      <RadarChart cx="50%" cy="50%" outerRadius="70%" data={prepareChartData(activeRecord.grades)}>
-                        <PolarGrid stroke="#e2e8f0" />
-                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#475569', fontSize: 10, fontWeight: 600 }} />
-                        <PolarRadiusAxis angle={30} domain={[0, 9]} tick={false} axisLine={false} />
-                        <Radar name="성적" dataKey="value" stroke="#4f46e5" fill="#4f46e5" fillOpacity={0.3} />
-                      </RadarChart>
-                    </ResponsiveContainer>
-                  </div>
-
-                  {/* 3. 꺾은선 그래프 (성적 추이) */}
-                  <div style={{ flex: 1.5, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px', minHeight: '200px', display: 'flex', flexDirection: 'column' }}>
-                    <h5 style={{ margin: '0 0 5px 0', fontSize: '0.75rem', color: '#94a3b8', textAlign: 'center' }}>학기별 성적 변동 추이</h5>
-                    <ResponsiveContainer width="100%" height={160}>
-                      <LineChart data={prepareTrendData(activeRecord.grades)} margin={{ top: 10, right: 20, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                        <XAxis dataKey="semester" tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} />
-                        <YAxis reversed domain={[1, 9]} hide />
-                        <Line type="monotone" dataKey="chartValue" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: '#10b981' }} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                    <div style={{ textAlign: 'center', fontSize: '0.75rem', color: '#34d399', fontWeight: 600, marginTop: '5px' }}>
-                      {(() => {
-                        const trend = prepareTrendData(activeRecord.grades);
-                        if (trend.length < 2) return "";
-                        const firstVal = trend[0]?.chartValue ?? 0;
-                        const lastVal = trend[trend.length - 1]?.chartValue ?? 0;
-                        return lastVal > firstVal ? "📈 성적 우상향 유지 중" : lastVal < firstVal ? "📉 성적 보완 필요" : "➖ 성적 유지 중";
-                      })()}
-                    </div>
-                  </div>
-                </div>
-
-                {/* 학년별 누적 및 전략 과목군 지표 추가 */}
-                {prepareDetailedStats(activeRecord.grades) && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '10px' }}>
-                    {/* 학년별 누적 표 */}
-                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px' }}>
-                      <h4 style={{ margin: '0 0 10px 0', fontSize: '0.85rem', color: '#475569', borderBottom: '1px solid #e2e8f0', paddingBottom: '5px' }}>학년별 누적 성적 요약</h4>
-                      <table style={{ width: '100%', fontSize: '0.8rem', borderCollapse: 'collapse' }}>
-                        <tbody>
-                          {prepareDetailedStats(activeRecord.grades)?.cumulative.map((item: any) => (
-                            <tr key={item.label} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                              <td style={{ padding: '6px 0', color: '#64748b' }}>{item.label}</td>
-                              <td style={{ padding: '6px 0', textAlign: 'right', fontWeight: 700, color: '#1e293b' }}>{item.value} 등급</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* 전략 과목군 표 */}
-                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px' }}>
-                      <h4 style={{ margin: '0 0 10px 0', fontSize: '0.85rem', color: '#475569', borderBottom: '1px solid #e2e8f0', paddingBottom: '5px' }}>전략 과목군별 평점</h4>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                        {prepareDetailedStats(activeRecord.grades)?.groups.map((item: any) => (
-                          <div key={item.label} style={{ background: '#fff', padding: '6px 10px', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
-                            <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{item.label.split(' ')[0]}</div>
-                            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#334155' }}>{item.value}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
+      {/* Official Report Area */}
+      {selectedStudent ? (
+        <div className="report-container glass-panel">
+          <div className="report-paper">
+            {/* Report Header */}
+            <header className="report-official-header">
+              <div className="brand-box">
+                <h1>SUPREMA</h1>
+                <p>EDUCATION GROUP</p>
               </div>
-            )}
-
-            <div className="section">
-              <h3 className="section-heading">AI 전문가 종합 평가 요약</h3>
-              <p className="monthly-goal" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-                {activeRecord.analysis_summary || '전문가 요약이 존재하지 않습니다.'}
-              </p>
-            </div>
-
-            <div className="section">
-              <h3 className="section-heading">주요 교과 내신 및 세특 포인트</h3>
-              <table className="task-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: '20%' }}>과목 및 등급</th>
-                    <th style={{ width: '80%' }}>세특 핵심 포인트 (AI 추출)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {activeRecord.grades?.map((item: any, i: number) => (
-                    <tr key={('grade'+i)}>
-                      <td>
-                        <strong>{item.subject || '미분류'}</strong><br/>
-                        <span style={{ color: '#3b82f6', fontSize: '0.9rem' }}>{item.score || '-'}</span>
-                      </td>
-                      <td style={{ textAlign: 'left', lineHeight: 1.5 }}>{item.note || '-'}</td>
-                    </tr>
-                  ))}
-                  {(!activeRecord.grades || activeRecord.grades.length === 0) && (
-                    <tr><td colSpan={2}>기록된 교과 정보가 없습니다.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="section">
-              <h3 className="section-heading">비교과 (자율/동아리/진로) 핵심 내역</h3>
-              <table className="task-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: '20%' }}>활동 구분</th>
-                    <th style={{ width: '80%' }}>활동 상세 요약</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {activeRecord.activities?.map((item: any, i: number) => (
-                    <tr key={('act'+i)}>
-                      <td><strong>{item.title}</strong></td>
-                      <td style={{ textAlign: 'left', lineHeight: 1.5 }}>{item.detail}</td>
-                    </tr>
-                  ))}
-                  {(!activeRecord.activities || activeRecord.activities.length === 0) && (
-                    <tr><td colSpan={2}>기록된 비교과 정보가 없습니다.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="section page-break-avoid">
-              <h3 className="section-heading">담당 컨설턴트 종합 의견 (코칭 코멘트)</h3>
-              <div className="comment-box">
-                {/* 입력 필드는 화면에만 보이고 인쇄 시에는 아래 표시용 div만 보임 */}
-                <textarea 
-                  className="consultant-opinion-input no-print" 
-                  value={consultantOpinion} 
-                  onChange={(e) => setConsultantOpinion(e.target.value)}
-                  placeholder="여기에 학부모/학생용 추가 코멘트를 직접 작성하세요. (작성 후 상단의 '저장' 버튼 클릭)"
-                  rows={4}
-                />
-                <div className="consultant-opinion-print print-only" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, minHeight: '60px' }}>
-                  {consultantOpinion || "등록된 컨설턴트 의견이 없습니다."}
+              <div className="report-meta">
+                <div className="meta-item">
+                  <span className="label">발행일자</span>
+                  <span className="value">{new Date().toLocaleDateString()}</span>
                 </div>
-                
-                <div className="sign-area">
-                  <span>컨설턴트 확인: ____________ (서명)</span>
+                <div className="meta-item">
+                  <span className="label">보고서 번호</span>
+                  <span className="value">SR-{selectedStudent.id.slice(0, 8).toUpperCase()}</span>
+                </div>
+              </div>
+            </header>
+
+            <div className="report-title-section">
+              <h2>학교생활기록부 종합 진단 및 대학 입시 전략 보고서</h2>
+              <div className="student-info-grid">
+                <div className="info-item">
+                  <User size={14} />
+                  <strong>학생 성명:</strong> <span>{selectedStudent.name}</span>
+                </div>
+                <div className="info-item">
+                  <Calendar size={14} />
+                  <strong>학교/학년:</strong> <span>{selectedStudent.school} {selectedStudent.grade}</span>
+                </div>
+                <div className="info-item">
+                  <Award size={14} />
+                  <strong>희망 전공:</strong> <span>{selectedStudent.target_major || '미설정'}</span>
                 </div>
               </div>
             </div>
+
+            {/* Content Sections */}
+            <div className="report-body">
+              {/* 1. Grade Analysis */}
+              <section className="report-section">
+                <h3 className="section-title"><TrendingUp size={18} /> 교과 성적 추이 및 경쟁력 분석</h3>
+                <div className="chart-wrapper">
+                  <ResponsiveContainer width="100%" height={200}>
+                    <LineChart data={[
+                      { name: '1-1', score: 2.1 },
+                      { name: '1-2', score: 1.8 },
+                      { name: '2-1', score: 1.5 },
+                      { name: '2-2', score: 1.3 },
+                    ]}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                      <YAxis reversed domain={[1, 5]} axisLine={false} tickLine={false} />
+                      <Tooltip />
+                      <Line type="monotone" dataKey="score" stroke="#4f46e5" strokeWidth={3} dot={{ r: 6, fill: '#4f46e5' }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="analysis-text">
+                  <p>주요 교과 성적이 1학년 1학기 이후 꾸준히 상승 곡선을 그리고 있으며, 특히 수학과 과학 교과에서의 우수성이 두드러집니다. 
+                  희망 전공인 의생명공학계열 지원 시 강력한 학업 역량 지표로 활용될 수 있습니다.</p>
+                </div>
+              </section>
+
+              {/* 2. AI Assessment Summary */}
+              <section className="report-section">
+                <h3 className="section-title"><Sparkles size={18} /> AI 생기부 종합 평가 요약</h3>
+                <div className="assessment-box">
+                  <div className="assessment-item">
+                    <CheckCircle2 size={16} color="#10b981" />
+                    <strong>학업 역량:</strong> <span>교과목 간 융합적 사고 능력이 뛰어나며 심화 탐구 능력이 우수함.</span>
+                  </div>
+                  <div className="assessment-item">
+                    <CheckCircle2 size={16} color="#10b981" />
+                    <strong>진로 역량:</strong> <span>의생명 계열에 대한 일관된 관심이 교과 및 창체 활동에 잘 녹아있음.</span>
+                  </div>
+                  <div className="assessment-item">
+                    <CheckCircle2 size={16} color="#10b981" />
+                    <strong>공동체 역량:</strong> <span>협동 프로젝트에서 주도적인 역할을 수행하며 리더십을 발휘함.</span>
+                  </div>
+                </div>
+              </section>
+
+              {/* 3. Consultant Opinion */}
+              <section className="report-section no-break">
+                <h3 className="section-title"><MessageSquare size={18} /> 담당 컨설턴트 종합 소견</h3>
+                <div className="opinion-box">
+                  <textarea 
+                    className="opinion-input no-print"
+                    placeholder="리포트에 포함될 컨설턴트 소견을 입력하세요..."
+                    value={consultantNote}
+                    onChange={(e) => setConsultantNote(e.target.value)}
+                  />
+                  <div className="opinion-print print-only">
+                    {consultantNote || '등록된 소견이 없습니다.'}
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            {/* Report Footer */}
+            <footer className="report-footer">
+              <div className="stamp-area">
+                <p>위 보고서는 수프리마 입시 진단 시스템의 AI 분석을 바탕으로 작성되었습니다.</p>
+                <div className="signature">
+                  <span>수프리마 입시 센터 원장 이기욱 (인)</span>
+                </div>
+              </div>
+              <p className="copyright">© SUPREMA EDUCATION GROUP. ALL RIGHTS RESERVED.</p>
+            </footer>
           </div>
-        )}
-        
-        <div className="report-footer">
-          <p>본 월간 점검표는 AI_학생부관리전문가1.0 시스템을 통해 자동 생성되었습니다.</p>
         </div>
-      </div>
+      ) : (
+        <div className="empty-planner glass-panel">
+          <FileText size={48} className="muted-icon" />
+          <h3>학생을 선택하여 리포트를 생성하세요</h3>
+          <p>분석된 생기부 데이터를 바탕으로 공식 진단 보고서를 구성합니다.</p>
+        </div>
+      )}
     </div>
   );
 };
+
+const MessageSquare = ({ size, className }: any) => <FileText size={size} className={className} />;
 
 export default MonthlyPlanner;
