@@ -8,30 +8,23 @@ import MonthlyPlanner from './components/MonthlyPlanner';
 import Settings from './components/Settings';
 import Login from './components/Login';
 import LicenseGuard from './components/LicenseGuard';
-import { supabase } from './lib/supabase';
+import { pb } from './lib/pocketbase'; // PocketBase 라이브러리 사용
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(pb.authStore.isValid);
   const [currentView, setCurrentView] = useState<'dashboard' | 'student' | 'exploration' | 'admin' | 'planner' | 'settings'>('dashboard');
   const [selectedStudent, setSelectedStudent] = useState<{id: string, name: string} | null>(null);
 
   useEffect(() => {
-    // 앱 로드 시 기존 로그인 정보 체크
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setIsAuthenticated(true);
-      }
-    });
-
-    // 실시간 로그인 상태 변화 감지
-    supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session);
+    // PocketBase 인증 상태 변화 감지
+    return pb.authStore.onChange((_token, _model) => {
+      setIsAuthenticated(pb.authStore.isValid);
     });
   }, []);
 
   const handleNavigate = (view: string) => {
     if (view === 'student') {
-      setSelectedStudent(null); // 사이드바에서 '빠른 스캔' 클릭 시 기존 선택 학생 해제
+      setSelectedStudent(null);
     }
     setCurrentView(view as any);
   };

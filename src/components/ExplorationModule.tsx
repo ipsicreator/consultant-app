@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Lightbulb, 
-  Search, 
-  BookOpen, 
   Sparkles, 
   ArrowRight, 
   Copy, 
@@ -58,7 +56,6 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ onBack, studentDa
       const response = await result.response;
       const text = response.text();
       
-      // JSON 파싱 (마크다운 태그 제거)
       const jsonStr = text.replace(/```json|```/g, '').trim();
       const data = JSON.parse(jsonStr);
       setProposals(data);
@@ -80,6 +77,9 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ onBack, studentDa
     <div className="exploration-module fade-in">
       <header className="module-header glass-panel">
         <div className="header-left">
+          <button className="back-btn-small" onClick={onBack} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '8px' }}>
+            뒤로가기
+          </button>
           <BrainCircuit className="header-icon" size={28} />
           <div className="title-area">
             <h2>AI 탐구 브레인</h2>
@@ -95,7 +95,6 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ onBack, studentDa
       </header>
 
       <div className="module-grid">
-        {/* Input Section */}
         <section className="input-section glass-panel">
           <div className="section-title">
             <Lightbulb size={20} />
@@ -115,7 +114,7 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ onBack, studentDa
           <div className="input-group">
             <label>추가 컨텍스트 (선택 사항)</label>
             <textarea 
-              placeholder="학생이 읽은 책, 수행평가 주제, 혹은 구체적인 아이디어를 자유롭게 입력하세요. AI가 이를 반영하여 최적화된 경로를 제안합니다."
+              placeholder="구체적인 아이디어를 입력하세요."
               value={extraContext}
               onChange={(e) => setExtraContext(e.target.value)}
               rows={6}
@@ -131,7 +130,7 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ onBack, studentDa
               {isGenerating ? (
                 <>
                   <RotateCcw className="spin" size={18} />
-                  <span>AI 분석 경로 탐색 중...</span>
+                  <span>AI 분석 중...</span>
                 </>
               ) : (
                 <>
@@ -143,7 +142,6 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ onBack, studentDa
           </div>
         </section>
 
-        {/* Results Section */}
         <section className="results-section">
           {proposals.length === 0 ? (
             <div className="empty-results glass-panel">
@@ -151,7 +149,6 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ onBack, studentDa
                 <MessageSquare size={48} />
               </div>
               <h3>AI의 제안을 기다리고 있습니다</h3>
-              <p>왼쪽 입력창에 관심사를 입력하고 버튼을 클릭하세요.<br/>학생의 생기부를 풍성하게 만들 차별화된 아이디어를 제안합니다.</p>
             </div>
           ) : (
             <div className="proposals-list">

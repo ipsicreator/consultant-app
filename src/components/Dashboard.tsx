@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Bell, UserPlus, ArrowRight, BookOpen, Clock, X, Save } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { pb } from '../lib/pocketbase';
 import './Dashboard.css';
 
 interface Student {
@@ -9,7 +9,7 @@ interface Student {
   school: string;
   grade: string;
   enrollment_status: string;
-  created_at: string;
+  created: string;
   academy_id: string;
 }
 
@@ -27,18 +27,18 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectStudent }) => {
 
   useEffect(() => {
     const initDashboard = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        // 프로필에서 학원 ID 가져오기
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('academy_id')
-          .eq('id', user.id)
-          .single();
-        
-        if (profile?.academy_id) {
-          setAcademyId(profile.academy_id);
-          fetchStudents(profile.academy_id);
+      if (pb.authStore.isValid && pb.authStore.model) {
+        const user = pb.authStore.model;
+        try {
+          // 프로필에서 학원 ID 가져오기
+          const profile = await pb.collection('profiles').getOne(user.id);
+          
+          if (profile?.academy_id) {
+            setAcademyId(profile.academy_id);
+            fetchStudents(profile.academy_id);
+          }
+        } catch (error) {
+          console.error("Dashboard init error:", error);
         }
       }
     };
@@ -48,14 +48,14 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectStudent }) => {
   const fetchStudents = async (id: string = academyId || '') => {
     if (!id) return;
     setLoading(true);
-    const { data, error } = await supabase
-      .from('students')
-      .select('*')
-      .eq('academy_id', id)
-      .order('created_at', { ascending: false });
-
-    if (!error && data) {
-      setStudents(data);
+    try {
+      const records = await pb.collection('students').getFullList({
+        filter: `academy_id = "${id}"`,
+        sort: '-created',
+      });
+      setStudents(records as unknown as Student[]);
+    } catch (error) {
+      console.error("Fetch students error:", error);
     }
     setLoading(false);
   };
@@ -66,30 +66,32 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectStudent }) => {
       return;
     }
     
-    const { error } = await supabase.from('students').insert([{
-      name: newStudent.name,
-      school: newStudent.school,
-      grade: newStudent.grade,
-      enrollment_status: '미등록',
-      academy_id: academyId
-    }]);
-
-    if (!error) {
+    try {
+      await pb.collection('students').create({
+        name: newStudent.name,
+        school: newStudent.school,
+        grade: newStudent.grade,
+        enrollment_status: '미등록',
+        academy_id: academyId
+      });
       setIsModalOpen(false);
       setNewStudent({ name: '', school: '', grade: '' });
       fetchStudents(academyId);
       setActiveTab('미등록');
-    } else {
+    } catch (error: any) {
       alert("등록 실패: " + error.message);
     }
   };
 
   const changeStatus = async (id: string, newStatus: string) => {
-    const { error } = await supabase
-      .from('students')
-      .update({ enrollment_status: newStatus })
-      .eq('id', id);
-    if (!error) fetchStudents(academyId!);
+    try {
+      await pb.collection('students').update(id, {
+        enrollment_status: newStatus
+      });
+      fetchStudents(academyId!);
+    } catch (error) {
+      console.error("Update status error:", error);
+    }
   };
 
   const filteredStudents = students.filter(s => (s.enrollment_status || '미등록') === activeTab);
@@ -153,7 +155,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectStudent }) => {
                            <span>{student.school} | {student.grade}학년</span>
                          </div>
                        </td>
-                       <td>{new Date(student.created_at).toLocaleDateString()}</td>
+                       <td>{new Date(student.created).toLocaleDateString()}</td>
                        <td>
                           <div className="status-actions">
                             {activeTab === '미등록' && <button className="btn-mini success" onClick={() => changeStatus(student.id, '수강중')}>수강 등록</button>}

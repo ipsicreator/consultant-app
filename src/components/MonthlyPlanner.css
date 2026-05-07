@@ -2,42 +2,126 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  padding: 24px;
+  gap: 24px;
   height: 100%;
   overflow-y: auto;
 }
 
 .planner-header {
-  height: 70px;
-  margin-bottom: 24px;
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
-}
-
-.header-left {
-  display: flex;
   align-items: center;
-  gap: 12px;
+  padding: 32px;
+  background: rgba(255, 255, 255, 0.02);
 }
 
-.accent-color {
-  color: var(--accent-color);
+.planner-header h2 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #fff 0%, var(--text-muted) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0;
 }
 
-.header-actions {
+.planner-controls {
   display: flex;
-  gap: 12px;
+  gap: 16px;
   align-items: center;
 }
 
-.student-select {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid var(--panel-border);
-  color: white;
+.planner-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 16px;
+  flex: 1;
+}
+
+.planner-day-header {
+  text-align: center;
+  padding: 12px;
+  color: var(--text-dim);
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.planner-day {
+  min-height: 140px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: var(--trans-fast);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.planner-day:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  z-index: 10;
+}
+
+.day-number {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.planner-day.today .day-number {
+  color: var(--accent);
+  text-shadow: 0 0 8px var(--accent-glow);
+}
+
+.planner-event {
   padding: 8px 12px;
   border-radius: 8px;
-  outline: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.05);
+  border-left: 3px solid var(--primary);
+  color: var(--text-main);
+  transition: var(--trans-fast);
+  cursor: pointer;
+}
+
+.planner-event:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateX(4px);
+}
+
+.planner-event.priority-high { border-left-color: var(--error); background: rgba(239, 68, 68, 0.1); }
+.planner-event.priority-medium { border-left-color: var(--warning); background: rgba(245, 158, 11, 0.1); }
+.planner-event.priority-low { border-left-color: var(--success); background: rgba(16, 185, 129, 0.1); }
+
+/* Legend */
+.planner-legend {
+  display: flex;
+  gap: 24px;
+  padding: 20px 32px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 16px;
+  margin-top: auto;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
 }
 
 /* Report Paper Styling */

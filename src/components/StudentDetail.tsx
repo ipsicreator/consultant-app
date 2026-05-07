@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, 
-  Upload, 
   FileSearch, 
   Save, 
-  Award, 
-  Activity, 
-  CheckCircle,
   FileText,
-  AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Sparkles,
+  History,
+  ClipboardList,
+  ChevronRight
 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { pb } from '../lib/pocketbase';
 import './StudentDetail.css';
 
 interface StudentDetailProps {
@@ -25,6 +25,9 @@ const StudentDetail: React.FC<StudentDetailProps> = ({ studentData, onBack }) =>
   const [inputText, setInputText] = useState('');
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [pastAnalyses, setPastAnalyses] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'new' | 'history'>('new');
+
+  const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 
   useEffect(() => {
     if (studentData) {
@@ -33,48 +36,50 @@ const StudentDetail: React.FC<StudentDetailProps> = ({ studentData, onBack }) =>
   }, [studentData]);
 
   const fetchPastAnalyses = async () => {
-    const { data, error } = await supabase
-      .from('pdf_analyses')
-      .select('*')
-      .eq('student_id', studentData?.id)
-      .order('created_at', { ascending: false });
-
-    if (!error && data) {
-      setPastAnalyses(data);
-      if (data.length > 0) {
-        setAnalysisResult(data[0]);
+    try {
+      const records = await pb.collection('pdf_analyses').getFullList({
+        filter: `student_id = "${studentData?.id}"`,
+        sort: '-created',
+      });
+      setPastAnalyses(records);
+      if (records.length > 0 && !analysisResult) {
+        setAnalysisResult(records[0].content);
       }
+    } catch (error) {
+      console.error("Fetch past analyses error:", error);
     }
   };
 
   const handleStartScan = async () => {
-    if (!inputText.trim()) {
-      alert("분석할 텍스트를 입력하거나 PDF를 스캔해 주세요.");
-      return;
-    }
+    if (!inputText.trim()) return alert("분석할 텍스트를 입력하거나 PDF를 업로드해주세요.");
 
     setIsScanning(true);
     try {
-      // AI 분석 로직 (Gemini API 연동 부분은 별도 lib 활용 권장)
-      // 여기서는 분석 프로세스 시뮬레이션 및 데이터 구조화만 수행
-      setTimeout(() => {
-        const mockResult = {
-          analysis_summary: "전체적으로 학업 역량이 우수하며, 특히 수학 및 과학 교과에서 깊이 있는 탐구 역량이 돋보입니다. 진로에 대한 확신이 뚜렷하게 나타나는 생활기록부입니다.",
-          grades: [
-            { semester: "1-1", subject: "국어", credit: 4, score: 1.2, note: "비문학 독해 능력이 탁월함" },
-            { semester: "1-1", subject: "수학", credit: 4, score: 1.0, note: "문제 해결 과정이 매우 창의적임" },
-            { semester: "1-1", subject: "영어", credit: 4, score: 1.5, note: "원어민 수준의 표현력 보유" }
-          ],
-          activities: [
-            { title: "자율활동", detail: "학급 회장으로서 갈등 중재 역량을 발휘함" },
-            { title: "동아리활동", detail: "인공지능 탐구 동아리에서 딥러닝 모델을 직접 설계함" }
-          ]
-        };
-        setAnalysisResult(mockResult);
-        setIsScanning(false);
-      }, 2000);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const prompt = `
+        다음은 고등학생의 학교생활기록부 내용이야:
+        "${inputText}"
+        
+        이 내용을 분석해서 다음 정보를 추출해줘:
+        1. 종합 핵심 요약
+        2. 주요 교과 성적 및 세특 분석
+        3. 비교과 활동 요약
+        
+        결과는 반드시 JSON 형식으로 응답해.
+      `;
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      const jsonStr = text.replace(/```json|```/g, '').trim();
+      const data = JSON.parse(jsonStr);
+      
+      setAnalysisResult(data);
+      alert("AI 분석이 완료되었습니다.");
     } catch (error) {
-      console.error("AI 분석 중 오류 발생:", error);
+      console.error("AI 분석 오류:", error);
+      alert("AI 분석 중 오류가 발생했습니다.");
+    } finally {
       setIsScanning(false);
     }
   };
@@ -83,19 +88,15 @@ const StudentDetail: React.FC<StudentDetailProps> = ({ studentData, onBack }) =>
     if (!studentData || !analysisResult) return;
 
     setIsSaving(true);
-    const { error } = await supabase
-      .from('pdf_analyses')
-      .insert([{
+    try {
+      await pb.collection('pdf_analyses').create({
         student_id: studentData.id,
-        analysis_summary: analysisResult.analysis_summary,
-        grades: analysisResult.grades,
-        activities: analysisResult.activities
-      }]);
-
-    if (!error) {
-      alert("분석 결과가 안전하게 저장되었습니다.");
+        content: analysisResult,
+      });
+      alert("저장되었습니다.");
       fetchPastAnalyses();
-    } else {
+      setActiveTab('history');
+    } catch (error: any) {
       alert("저장 실패: " + error.message);
     }
     setIsSaving(false);
@@ -104,119 +105,97 @@ const StudentDetail: React.FC<StudentDetailProps> = ({ studentData, onBack }) =>
   return (
     <div className="student-detail fade-in">
       <header className="detail-header glass-panel">
-        <button className="back-btn" onClick={onBack}>
-          <ArrowLeft size={20} />
-          <span>목록으로</span>
-        </button>
-        <div className="student-info-chip">
-          <div className="avatar-small">{studentData?.name[0]}</div>
-          <strong>{studentData?.name}</strong>
-          <span className="id-badge">#{studentData?.id.slice(0, 5)}</span>
+        <div className="header-left">
+          <button className="back-btn" onClick={onBack}>
+            <ArrowLeft size={20} />
+          </button>
+          <div className="student-profile">
+            <div className="avatar">{studentData?.name[0]}</div>
+            <div className="info">
+              <h3>{studentData?.name}</h3>
+              <span>학생부 정밀 분석 워크스테이션</span>
+            </div>
+          </div>
+        </div>
+        <div className="header-tabs">
+          <button className={activeTab === 'new' ? 'active' : ''} onClick={() => setActiveTab('new')}>
+            <Sparkles size={16} /> 새 분석
+          </button>
+          <button className={activeTab === 'history' ? 'active' : ''} onClick={() => setActiveTab('history')}>
+            <History size={16} /> 이력 ({pastAnalyses.length})
+          </button>
         </div>
       </header>
 
       <div className="detail-grid">
-        {/* 왼쪽: 입력 및 스캔 섹션 */}
-        <section className="scan-section glass-panel">
-          <div className="section-title">
-            <FileSearch size={20} />
-            <h3>생활기록부 데이터 입력</h3>
-          </div>
-          <div className="input-area">
+        {activeTab === 'new' ? (
+          <section className="scan-section glass-panel">
+            <div className="section-title">
+              <ClipboardList size={20} />
+              <h3>텍스트 입력</h3>
+            </div>
             <textarea 
-              placeholder="생활기록부 텍스트를 붙여넣거나, PDF에서 추출된 내용을 입력하세요..."
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
+              placeholder="생기부 내용을 입력하세요..."
             />
-            <div className="scan-actions">
-              <button className="btn-secondary">
-                <Upload size={18} />
-                <span>PDF 파일 업로드</span>
-              </button>
-              <button 
-                className="btn-primary" 
-                onClick={handleStartScan}
-                disabled={isScanning}
-              >
-                {isScanning ? (
-                  <>
-                    <RefreshCw size={18} className="spin" />
-                    <span>AI 분석 중...</span>
-                  </>
-                ) : (
-                  <>
-                    <Activity size={18} />
-                    <span>AI 정밀 분석 시작</span>
-                  </>
-                )}
+            <div className="actions">
+              <button className="btn-primary" onClick={handleStartScan} disabled={isScanning}>
+                {isScanning ? <RefreshCw className="spin" size={18} /> : <FileSearch size={18} />}
+                <span>{isScanning ? '분석 중...' : 'AI 분석 시작'}</span>
               </button>
             </div>
-          </div>
-        </section>
+          </section>
+        ) : (
+          <section className="history-section glass-panel">
+            <div className="history-list">
+              {pastAnalyses.map((item) => (
+                <div key={item.id} className="history-item" onClick={() => { setAnalysisResult(item.content); setActiveTab('new'); }}>
+                  <span className="date">{new Date(item.created).toLocaleDateString()}</span>
+                  <p className="preview">{item.content.analysis_summary?.slice(0, 50)}...</p>
+                  <ChevronRight size={16} />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
-        {/* 오른쪽: 결과 리포트 섹션 */}
         <section className="report-section glass-panel">
           <div className="section-title">
-            <Award size={20} />
-            <h3>AI 분석 리포트</h3>
+            <FileText size={20} />
+            <h3>분석 리포트</h3>
             {analysisResult && (
-              <button className="btn-mini-save" onClick={handleSaveResult} disabled={isSaving}>
-                <Save size={16} />
-                <span>{isSaving ? '저장중' : '결과 저장'}</span>
+              <button className="btn-save" onClick={handleSaveResult} disabled={isSaving}>
+                <Save size={16} /> {isSaving ? '저장 중' : '저장'}
               </button>
             )}
           </div>
-
-          {!analysisResult ? (
-            <div className="empty-report">
-              <FileText size={48} />
-              <p>왼쪽에서 분석을 시작해 주세요.</p>
-            </div>
-          ) : (
+          {analysisResult ? (
             <div className="report-content">
-              <div className="summary-box">
-                <h4><CheckCircle size={18} /> 종합 핵심 요약</h4>
+              <div className="report-card">
+                <h4>종합 요약</h4>
                 <p>{analysisResult.analysis_summary}</p>
               </div>
-
-              <div className="grades-box">
-                <h4><Award size={18} /> 주요 교과 성적 및 세특 분석</h4>
-                <div className="compact-table">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>학기</th>
-                        <th>과목</th>
-                        <th>등급</th>
-                        <th>핵심 포인트</th>
+              <div className="report-card">
+                <h4>교과 분석</h4>
+                <table>
+                  <thead>
+                    <tr><th>과목</th><th>등급</th><th>포인트</th></tr>
+                  </thead>
+                  <tbody>
+                    {analysisResult.grades?.map((g: any, i: number) => (
+                      <tr key={i}>
+                        <td>{g.subject}</td>
+                        <td>{g.score}</td>
+                        <td>{g.note}</td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {analysisResult.grades?.map((g: any, idx: number) => (
-                        <tr key={idx}>
-                          <td>{g.semester}</td>
-                          <td>{g.subject}</td>
-                          <td><span className="score-tag">{g.score}</span></td>
-                          <td className="note-text">{g.note}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div className="activities-box">
-                <h4><Activity size={18} /> 창체 및 세부 활동 요약</h4>
-                <div className="activity-list">
-                  {analysisResult.activities?.map((a: any, idx: number) => (
-                    <div key={idx} className="activity-item">
-                      <strong>{a.title}</strong>
-                      <p>{a.detail}</p>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
+          ) : (
+            <div className="empty-msg">분석 결과가 여기에 표시됩니다.</div>
           )}
         </section>
       </div>

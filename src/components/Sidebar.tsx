@@ -10,7 +10,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { pb } from '../lib/pocketbase';
 import './Sidebar.css';
 
 interface SidebarProps {
@@ -24,14 +24,14 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('name')
-          .eq('id', user.id)
-          .single();
-        if (profile?.name) setUserName(profile.name);
+      if (pb.authStore.isValid && pb.authStore.model) {
+        const user = pb.authStore.model;
+        try {
+          const profile = await pb.collection('profiles').getOne(user.id);
+          if (profile?.name) setUserName(profile.name);
+        } catch (error) {
+          console.error("Sidebar fetch user error:", error);
+        }
       }
     };
     fetchUser();
@@ -39,7 +39,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
 
   const handleLogout = async () => {
     if (window.confirm('로그아웃 하시겠습니까?')) {
-      await supabase.auth.signOut();
+      pb.authStore.clear();
+      window.location.reload();
     }
   };
 
@@ -48,7 +49,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
       <div className="sidebar-header">
         <div className="logo-container">
           <div className="logo-icon">S</div>
-          {!isCollapsed && <span className="brand-name">SUPREMA</span>}
+          {!isCollapsed && <span className="brand-name">SUPRIMA</span>}
         </div>
         {!isCollapsed && <p className="subtitle">AI 생기부 관리 마스터</p>}
         <button className="collapse-btn" onClick={() => setIsCollapsed(!isCollapsed)}>

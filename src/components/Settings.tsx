@@ -15,7 +15,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { supabase } from '../lib/supabase';
+import { pb } from '../lib/pocketbase';
 import { extractCaseFromPDF } from '../lib/gemini';
 import './Settings.css';
 
@@ -232,11 +232,14 @@ const LibraryManager: React.FC = () => {
   const [uploadStatus, setUploadStatus] = useState('');
 
   const fetchLibrary = async () => {
-    const { data, error } = await supabase
-      .from('exploration_library')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (!error) setItems(data);
+    try {
+      const records = await pb.collection('exploration_library').getFullList({
+        sort: '-created',
+      });
+      setItems(records);
+    } catch (error) {
+      console.error("Fetch library error:", error);
+    }
   };
 
   React.useEffect(() => {
@@ -270,11 +273,15 @@ const LibraryManager: React.FC = () => {
         source_type: 'excel'
       }));
 
-      const { error } = await supabase.from('exploration_library').insert(toInsert);
-      if (error) alert('업로드 중 오류: ' + error.message);
-      else {
+      try {
+        // PocketBase batch create
+        for (const item of toInsert) {
+          await pb.collection('exploration_library').create(item);
+        }
         alert('업로드 완료!');
         fetchLibrary();
+      } catch (error: any) {
+        alert('업로드 중 오류: ' + error.message);
       }
       setIsUploading(false);
       setUploadStatus('');
@@ -292,11 +299,10 @@ const LibraryManager: React.FC = () => {
 
     try {
       const extracted = await extractCaseFromPDF(file);
-      const { error } = await supabase.from('exploration_library').insert({
+      await pb.collection('exploration_library').create({
         ...extracted,
         source_type: 'pdf'
       });
-      if (error) throw error;
       alert('AI PDF 분석 및 저장 완료!');
       fetchLibrary();
     } catch (err: any) {
@@ -309,8 +315,12 @@ const LibraryManager: React.FC = () => {
 
   const deleteItem = async (id: string) => {
     if (!confirm('정말 삭제하시겠습니까?')) return;
-    await supabase.from('exploration_library').delete().eq('id', id);
-    fetchLibrary();
+    try {
+      await pb.collection('exploration_library').delete(id);
+      fetchLibrary();
+    } catch (error) {
+      console.error("Delete item error:", error);
+    }
   };
 
   return (

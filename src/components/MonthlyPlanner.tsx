@@ -7,8 +7,7 @@ import {
   User, 
   Calendar,
   CheckCircle2,
-  ChevronRight,
-  Download
+  Sparkles
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -19,13 +18,12 @@ import {
   Tooltip, 
   ResponsiveContainer 
 } from 'recharts';
-import { supabase } from '../lib/supabase';
+import { pb } from '../lib/pocketbase';
 import './MonthlyPlanner.css';
 
 const MonthlyPlanner: React.FC = () => {
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [students, setStudents] = useState<any[]>([]);
-  const [reportData, setReportData] = useState<any>(null);
   const [consultantNote, setConsultantNote] = useState('');
 
   useEffect(() => {
@@ -33,23 +31,23 @@ const MonthlyPlanner: React.FC = () => {
   }, []);
 
   const fetchStudents = async () => {
-    const { data } = await supabase.from('students').select('*');
-    if (data) setStudents(data);
+    try {
+      const records = await pb.collection('students').getFullList();
+      setStudents(records);
+    } catch (error) {
+      console.error("Fetch students error:", error);
+    }
   };
 
   const loadReport = async (student: any) => {
     setSelectedStudent(student);
-    // 실제 데이터는 학생의 생기부 분석 결과(pdf_analyses)에서 가져옵니다.
-    const { data } = await supabase
-      .from('pdf_analyses')
-      .select('*')
-      .eq('student_id', student.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-    
-    if (data) {
-      setReportData(data.content);
+    try {
+      // 데이터 로드 확인용 로직
+      await pb.collection('pdf_analyses').getFirstListItem(`student_id="${student.id}"`, {
+        sort: '-created',
+      });
+    } catch (error) {
+      console.error("Load report error:", error);
     }
   };
 
@@ -59,7 +57,6 @@ const MonthlyPlanner: React.FC = () => {
 
   return (
     <div className="monthly-planner fade-in">
-      {/* Control Panel (Hide when printing) */}
       <header className="planner-header glass-panel no-print">
         <div className="header-left">
           <FileText size={24} className="accent-color" />
@@ -88,14 +85,12 @@ const MonthlyPlanner: React.FC = () => {
         </div>
       </header>
 
-      {/* Official Report Area */}
       {selectedStudent ? (
         <div className="report-container glass-panel">
           <div className="report-paper">
-            {/* Report Header */}
             <header className="report-official-header">
               <div className="brand-box">
-                <h1>SUPREMA</h1>
+                <h1>SUPRIMA</h1>
                 <p>EDUCATION GROUP</p>
               </div>
               <div className="report-meta">
@@ -128,9 +123,7 @@ const MonthlyPlanner: React.FC = () => {
               </div>
             </div>
 
-            {/* Content Sections */}
             <div className="report-body">
-              {/* 1. Grade Analysis */}
               <section className="report-section">
                 <h3 className="section-title"><TrendingUp size={18} /> 교과 성적 추이 및 경쟁력 분석</h3>
                 <div className="chart-wrapper">
@@ -155,7 +148,6 @@ const MonthlyPlanner: React.FC = () => {
                 </div>
               </section>
 
-              {/* 2. AI Assessment Summary */}
               <section className="report-section">
                 <h3 className="section-title"><Sparkles size={18} /> AI 생기부 종합 평가 요약</h3>
                 <div className="assessment-box">
@@ -174,9 +166,8 @@ const MonthlyPlanner: React.FC = () => {
                 </div>
               </section>
 
-              {/* 3. Consultant Opinion */}
               <section className="report-section no-break">
-                <h3 className="section-title"><MessageSquare size={18} /> 담당 컨설턴트 종합 소견</h3>
+                <h3 className="section-title"><FileText size={18} /> 담당 컨설턴트 종합 소견</h3>
                 <div className="opinion-box">
                   <textarea 
                     className="opinion-input no-print"
@@ -191,7 +182,6 @@ const MonthlyPlanner: React.FC = () => {
               </section>
             </div>
 
-            {/* Report Footer */}
             <footer className="report-footer">
               <div className="stamp-area">
                 <p>위 보고서는 수프리마 입시 진단 시스템의 AI 분석을 바탕으로 작성되었습니다.</p>
@@ -199,7 +189,7 @@ const MonthlyPlanner: React.FC = () => {
                   <span>수프리마 입시 센터 원장 이기욱 (인)</span>
                 </div>
               </div>
-              <p className="copyright">© SUPREMA EDUCATION GROUP. ALL RIGHTS RESERVED.</p>
+              <p className="copyright">© SUPRIMA EDUCATION GROUP. ALL RIGHTS RESERVED.</p>
             </footer>
           </div>
         </div>
@@ -213,7 +203,5 @@ const MonthlyPlanner: React.FC = () => {
     </div>
   );
 };
-
-const MessageSquare = ({ size, className }: any) => <FileText size={size} className={className} />;
 
 export default MonthlyPlanner;

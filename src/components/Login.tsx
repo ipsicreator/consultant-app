@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { pb } from '../lib/pocketbase';
 import { Lock, Mail, ArrowRight, ShieldCheck } from 'lucide-react';
 import './Login.css';
 
@@ -18,28 +18,15 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     setLoading(true);
     setErrorMsg('');
 
-    // 실제로는 원장님이 Supabase 대시보드에서 등록한 계정으로 로그인 (또는 현재는 우회 허용)
-    if (email === 'admin@suprima.com' && password === '1234') {
+    try {
+      // PocketBase의 'users' 컬렉션으로 로그인 시도
+      await pb.collection('users').authWithPassword(email, password);
       onLoginSuccess();
-      return;
+    } catch (error: any) {
+      setErrorMsg('이메일 또는 비밀번호가 일치하지 않습니다. (PocketBase 대시보드에서 생성한 계정을 사용하세요)');
+    } finally {
+      setLoading(false);
     }
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      // 에러 시 임시 통과 (UI 테스트용 하드코딩)
-      if (email === 'test' && password === 'test') {
-        onLoginSuccess();
-      } else {
-        setErrorMsg('이메일 또는 비밀번호가 일치하지 않습니다. (테스트용: test / test)');
-      }
-    } else {
-      onLoginSuccess();
-    }
-    setLoading(false);
   };
 
   return (
@@ -47,8 +34,8 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       <div className="login-glass-box">
         <div className="login-header">
           <img src="/logo.png" alt="대치수프리마" className="login-logo"/>
-          <h2>마스터/컨설턴트 시스템 접속</h2>
-          <p>AI_학생부관리전문가1.0 플랫폼입니다.</p>
+          <h2>마스터/컨설턴트 시스템 접속 (PB)</h2>
+          <p>로컬 PocketBase 기반 플랫폼입니다.</p>
         </div>
 
         <form onSubmit={handleLogin} className="login-form">
@@ -58,7 +45,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
               <Mail size={18} className="input-icon" />
               <input 
                 type="text" 
-                placeholder="email@example.com (테스트: test)" 
+                placeholder="PocketBase 관리자/유저 이메일" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -72,7 +59,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
               <Lock size={18} className="input-icon" />
               <input 
                 type="password" 
-                placeholder="•••••••• (테스트: test)" 
+                placeholder="••••••••" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -89,7 +76,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
         <div className="login-footer">
           <ShieldCheck size={16} /> 
-          <span>허가된 관리자 및 입시컨설턴트 외 접근을 금지합니다.</span>
+          <span>로컬 데이터베이스 연결 상태: {pb.authStore.isValid ? '정상' : '로그인 필요'}</span>
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { pb } from '../lib/pocketbase';
 import { ShieldAlert, PhoneCall } from 'lucide-react';
 
 interface LicenseGuardProps {
@@ -15,15 +15,14 @@ const LicenseGuard: React.FC<LicenseGuardProps> = ({ children }) => {
   useEffect(() => {
     const checkLicense = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!pb.authStore.isValid || !pb.authStore.model) {
+          setLicenseStatus({ active: false, loading: false });
+          return;
+        }
+        const user = pb.authStore.model;
 
         // 사용자의 프로필에서 academy_id를 가져옵니다.
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('academy_id, role')
-          .eq('id', user.id)
-          .single();
+        const profile = await pb.collection('profiles').getOne(user.id);
 
         if (profile?.role === 'master') {
           // 마스터 계정은 라이선스 체크를 건너뜁니다.
@@ -37,11 +36,7 @@ const LicenseGuard: React.FC<LicenseGuardProps> = ({ children }) => {
         }
 
         // 라이선스 테이블에서 활성화 여부 확인
-        const { data: license } = await supabase
-          .from('licenses')
-          .select('is_active')
-          .eq('academy_id', profile.academy_id)
-          .single();
+        const license = await pb.collection('licenses').getFirstListItem(`academy_id="${profile.academy_id}"`);
 
         setLicenseStatus({ 
           active: license?.is_active ?? false, 
@@ -49,6 +44,7 @@ const LicenseGuard: React.FC<LicenseGuardProps> = ({ children }) => {
         });
       } catch (error) {
         console.error('License check failed:', error);
+        // 에러 발생 시(데이터가 없는 경우 등) 일단 비활성화 처리
         setLicenseStatus({ active: false, loading: false });
       }
     };
@@ -79,9 +75,9 @@ const LicenseGuard: React.FC<LicenseGuardProps> = ({ children }) => {
             <PhoneCall size={18} />
             <span>고객센터: 1588-XXXX (수프리마 본사)</span>
           </div>
-          <button 
+           <button 
             className="btn-primary" 
-            onClick={() => supabase.auth.signOut()}
+            onClick={() => { pb.authStore.clear(); window.location.reload(); }}
           >
             로그아웃 후 재접속
           </button>
