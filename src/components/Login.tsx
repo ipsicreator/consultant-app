@@ -19,8 +19,8 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     setErrorMsg('');
 
     try {
-      // PocketBase의 'users' 컬렉션으로 로그인 시도
-      await pb.collection('users').authWithPassword(email, password);
+      // PocketBase의 관리자(Admin) 계정으로 로그인 시도
+      await pb.admins.authWithPassword(email, password);
       onLoginSuccess();
     } catch (error: any) {
       setErrorMsg('이메일 또는 비밀번호가 일치하지 않습니다. (PocketBase 대시보드에서 생성한 계정을 사용하세요)');
