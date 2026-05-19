@@ -21,7 +21,7 @@ const AdminDashboard = () => {
 
   const fetchStaff = async () => {
     try {
-      const records = await pb.collection('profiles').getFullList();
+      const records = await pb.collection('suprima_profiles').getFullList();
       setStaff(records);
     } catch (err) {
       console.error('Staff fetch error:', err);

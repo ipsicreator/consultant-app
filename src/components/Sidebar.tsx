@@ -1,16 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Users, 
-  FileText, 
+﻿import React, { useEffect, useState } from 'react';
+import {
+  Users,
+  FileText,
   Settings,
   LogOut,
   Building,
   Calendar,
   Lightbulb,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
 } from 'lucide-react';
 import { pb } from '../lib/pocketbase';
+import { resolveOrCreateProfile } from '../lib/profileLink';
 import './Sidebar.css';
 
 interface SidebarProps {
@@ -24,20 +25,20 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
 
   useEffect(() => {
     const fetchUser = async () => {
-      if (pb.authStore.isValid && pb.authStore.model) {
-        const user = pb.authStore.model;
-        try {
-          const profile = await pb.collection('profiles').getOne(user.id);
-          if (profile?.name) setUserName(profile.name);
-        } catch (error) {
-          console.error("Sidebar fetch user error:", error);
-        }
+      if (!pb.authStore.isValid || !pb.authStore.model) return;
+      const user = pb.authStore.model as any;
+      try {
+        const profile = await resolveOrCreateProfile();
+        if (profile?.name) setUserName(profile.name);
+        else if (user?.email) setUserName(String(user.email).split('@')[0]);
+      } catch (error) {
+        console.error('Sidebar fetch user error:', error);
       }
     };
     fetchUser();
   }, []);
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     if (window.confirm('로그아웃 하시겠습니까?')) {
       pb.authStore.clear();
       window.location.reload();
@@ -51,7 +52,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
           <div className="logo-icon">S</div>
           {!isCollapsed && <span className="brand-name">SUPRIMA</span>}
         </div>
-        {!isCollapsed && <p className="subtitle">AI 생기부 관리 마스터</p>}
+        {!isCollapsed && <p className="subtitle">교과 세특 코칭 플랫폼</p>}
         <button className="collapse-btn" onClick={() => setIsCollapsed(!isCollapsed)}>
           {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
@@ -65,13 +66,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
           </li>
           <li className={currentView === 'student' ? 'active' : ''} onClick={() => onNavigate('student')}>
             <FileText size={20} />
-            {!isCollapsed && <span>생기부 AI 분석</span>}
+            {!isCollapsed && <span>학생부 분석</span>}
           </li>
           <li className={currentView === 'exploration' ? 'active' : ''} onClick={() => onNavigate('exploration')}>
             <Lightbulb size={20} />
             {!isCollapsed && (
               <>
-                <span>AI 탐구 브레인</span>
+                <span>탐구활동 제안</span>
                 <span className="badge">New</span>
               </>
             )}
@@ -82,7 +83,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
           </li>
           <li className={currentView === 'admin' ? 'active' : ''} onClick={() => onNavigate('admin')}>
             <Building size={20} />
-            {!isCollapsed && <span>팀원 배정 관리</span>}
+            {!isCollapsed && <span>관리자 배정 관리</span>}
           </li>
         </ul>
       </nav>
@@ -103,7 +104,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
           {!isCollapsed && (
             <div className="user-info">
               <span className="name">{userName} 님</span>
-              <span className="role">전문 컨설턴트</span>
+              <span className="role">입시 컨설턴트</span>
             </div>
           )}
         </div>

@@ -18,9 +18,10 @@ dist-ssr
 .idea
 .DS_Store
 *.suo
-*.ntvs*
+*.ntvsca*
 *.njsproj
 *.sln
 *.sw?
 
+# Vercel
 .vercel

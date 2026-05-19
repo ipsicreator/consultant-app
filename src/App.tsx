@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import StudentDetail from './components/StudentDetail';
@@ -8,17 +8,16 @@ import MonthlyPlanner from './components/MonthlyPlanner';
 import Settings from './components/Settings';
 import Login from './components/Login';
 import LicenseGuard from './components/LicenseGuard';
-import { pb } from './lib/pocketbase'; // PocketBase 라이브러리 사용
+import { pb } from './lib/pocketbase';
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(pb.authStore.isValid);
+  const [isAuthenticated, setIsAuthenticated] = useState(!!pb.authStore.model);
   const [currentView, setCurrentView] = useState<'dashboard' | 'student' | 'exploration' | 'admin' | 'planner' | 'settings'>('dashboard');
-  const [selectedStudent, setSelectedStudent] = useState<{id: string, name: string} | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
-    // PocketBase 인증 상태 변화 감지
-    return pb.authStore.onChange((_token, _model) => {
-      setIsAuthenticated(pb.authStore.isValid);
+    return pb.authStore.onChange((_token, model) => {
+      setIsAuthenticated(!!model);
     });
   }, []);
 
@@ -41,35 +40,18 @@ function App() {
   return (
     <LicenseGuard>
       <div className="app-container">
-        <Sidebar 
-          currentView={currentView} 
-          onNavigate={handleNavigate} 
-        />
+        <Sidebar currentView={currentView} onNavigate={handleNavigate} />
         <div className="main-content">
-          {currentView === 'dashboard' && (
-            <Dashboard onSelectStudent={handleStudentSelect} />
-          )}
+          {currentView === 'dashboard' && <Dashboard onSelectStudent={handleStudentSelect} />}
           {currentView === 'student' && (
-            <StudentDetail 
-              studentData={selectedStudent}
-              onBack={() => setCurrentView('dashboard')}
-            />
+            <StudentDetail studentData={selectedStudent} onBack={() => setCurrentView('dashboard')} />
           )}
           {currentView === 'exploration' && (
-            <ExplorationModule 
-              onBack={() => setCurrentView('dashboard')} 
-              studentData={selectedStudent}
-            />
+            <ExplorationModule onBack={() => setCurrentView('dashboard')} studentData={selectedStudent} />
           )}
-          {currentView === 'admin' && (
-            <AdminDashboard />
-          )}
-          {currentView === 'planner' && (
-            <MonthlyPlanner />
-          )}
-          {currentView === 'settings' && (
-            <Settings />
-          )}
+          {currentView === 'admin' && <AdminDashboard />}
+          {currentView === 'planner' && <MonthlyPlanner />}
+          {currentView === 'settings' && <Settings />}
         </div>
       </div>
     </LicenseGuard>

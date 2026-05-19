@@ -26,24 +26,24 @@ const MonthlyPlanner: React.FC = () => {
   const [students, setStudents] = useState<any[]>([]);
   const [consultantNote, setConsultantNote] = useState('');
 
-  useEffect(() => {
-    fetchStudents();
-  }, []);
-
   const fetchStudents = async () => {
     try {
-      const records = await pb.collection('students').getFullList();
+      const records = await pb.collection('suprima_students').getFullList();
       setStudents(records);
     } catch (error) {
       console.error("Fetch students error:", error);
     }
   };
 
+  useEffect(() => {
+    fetchStudents();
+  }, []);
+
   const loadReport = async (student: any) => {
     setSelectedStudent(student);
     try {
       // 데이터 로드 확인용 로직
-      await pb.collection('pdf_analyses').getFirstListItem(`student_id="${student.id}"`, {
+      await pb.collection('suprima_pdf_analyses').getFirstListItem(`student_id="${student.id}"`, {
         sort: '-created',
       });
     } catch (error) {
@@ -90,7 +90,7 @@ const MonthlyPlanner: React.FC = () => {
           <div className="report-paper">
             <header className="report-official-header">
               <div className="brand-box">
-                <h1>SUPRIMA</h1>
+                <h1>교과 탐구 세특 전문가</h1>
                 <p>EDUCATION GROUP</p>
               </div>
               <div className="report-meta">
@@ -184,12 +184,12 @@ const MonthlyPlanner: React.FC = () => {
 
             <footer className="report-footer">
               <div className="stamp-area">
-                <p>위 보고서는 수프리마 입시 진단 시스템의 AI 분석을 바탕으로 작성되었습니다.</p>
+                <p>위 보고서는 교과 탐구 세특 전문가 시스템의 AI 분석을 바탕으로 작성되었습니다.</p>
                 <div className="signature">
-                  <span>수프리마 입시 센터 원장 이기욱 (인)</span>
+                  <span>교과 탐구 세특 전문가 원장 이기욱 (인)</span>
                 </div>
               </div>
-              <p className="copyright">© SUPRIMA EDUCATION GROUP. ALL RIGHTS RESERVED.</p>
+              <p className="copyright">© 교과 탐구 세특 전문가. ALL RIGHTS RESERVED.</p>
             </footer>
           </div>
         </div>

@@ -99,7 +99,7 @@ const Settings: React.FC = () => {
       <div className="detail-header glass-panel">
         <div className="title-area">
           <SettingsIcon size={24} className="accent-icon" />
-          <h2>대치수프리마 마스터 환경 설정</h2>
+          <h2>교과 탐구 세특 전문가 환경 설정</h2>
         </div>
       </div>
 
@@ -233,7 +233,7 @@ const LibraryManager: React.FC = () => {
 
   const fetchLibrary = async () => {
     try {
-      const records = await pb.collection('exploration_library').getFullList({
+      const records = await pb.collection('suprima_exploration_library').getFullList({
         sort: '-created',
       });
       setItems(records);
@@ -274,14 +274,17 @@ const LibraryManager: React.FC = () => {
       }));
 
       try {
-        // PocketBase batch create
-        for (const item of toInsert) {
-          await pb.collection('exploration_library').create(item);
+        // PocketBase 병렬 처리 (청크 단위)
+        const CHUNK_SIZE = 10;
+        for (let i = 0; i < toInsert.length; i += CHUNK_SIZE) {
+          const chunk = toInsert.slice(i, i + CHUNK_SIZE);
+          setUploadStatus(`${data.length}건 중 ${i + chunk.length}건 적재 중...`);
+          await Promise.all(chunk.map(item => pb.collection('suprima_exploration_library').create(item)));
         }
         alert('업로드 완료!');
         fetchLibrary();
       } catch (error: any) {
-        alert('업로드 중 오류: ' + error.message);
+        alert('업로드 중 일부 오류가 발생했습니다: ' + error.message);
       }
       setIsUploading(false);
       setUploadStatus('');
@@ -299,7 +302,7 @@ const LibraryManager: React.FC = () => {
 
     try {
       const extracted = await extractCaseFromPDF(file);
-      await pb.collection('exploration_library').create({
+      await pb.collection('suprima_exploration_library').create({
         ...extracted,
         source_type: 'pdf'
       });
@@ -316,7 +319,7 @@ const LibraryManager: React.FC = () => {
   const deleteItem = async (id: string) => {
     if (!confirm('정말 삭제하시겠습니까?')) return;
     try {
-      await pb.collection('exploration_library').delete(id);
+      await pb.collection('suprima_exploration_library').delete(id);
       fetchLibrary();
     } catch (error) {
       console.error("Delete item error:", error);

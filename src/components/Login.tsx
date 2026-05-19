@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { pb } from '../lib/pocketbase';
+import { resolveOrCreateProfile } from '../lib/profileLink';
 import { Lock, Mail, ArrowRight, ShieldCheck } from 'lucide-react';
 import './Login.css';
 
@@ -19,11 +20,13 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     setErrorMsg('');
 
     try {
-      // PocketBase의 관리자(Admin) 계정으로 로그인 시도
-      await pb.admins.authWithPassword(email, password);
+      pb.authStore.clear();
+      await pb.collection('users').authWithPassword(email, password);
+      await resolveOrCreateProfile();
       onLoginSuccess();
-    } catch (error: any) {
-      setErrorMsg('이메일 또는 비밀번호가 일치하지 않습니다. (PocketBase 대시보드에서 생성한 계정을 사용하세요)');
+    } catch (error) {
+      console.error('Login error:', error);
+      setErrorMsg('로그인 실패: 이메일 또는 비밀번호를 확인해 주세요.');
     } finally {
       setLoading(false);
     }
@@ -33,19 +36,19 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     <div className="login-container">
       <div className="login-glass-box">
         <div className="login-header">
-          <img src="/logo.png" alt="대치수프리마" className="login-logo"/>
-          <h2>마스터/컨설턴트 시스템 접속 (PB)</h2>
-          <p>로컬 PocketBase 기반 플랫폼입니다.</p>
+          <img src="/logo.png" alt="수프리마 플랫폼" className="login-logo" />
+          <h2>수프리마 플랫폼 로그인</h2>
+          <p>PocketBase users 인증</p>
         </div>
 
         <form onSubmit={handleLogin} className="login-form">
           <div className="input-group">
-            <label>이메일 주소</label>
+            <label>이메일</label>
             <div className="input-with-icon">
               <Mail size={18} className="input-icon" />
-              <input 
-                type="text" 
-                placeholder="PocketBase 관리자/유저 이메일" 
+              <input
+                type="email"
+                placeholder="name@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -57,9 +60,9 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             <label>비밀번호</label>
             <div className="input-with-icon">
               <Lock size={18} className="input-icon" />
-              <input 
-                type="password" 
-                placeholder="••••••••" 
+              <input
+                type="password"
+                placeholder="비밀번호"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -70,13 +73,13 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           {errorMsg && <div className="error-message">{errorMsg}</div>}
 
           <button type="submit" className="btn-primary login-btn" disabled={loading}>
-            {loading ? '인증 중...' : '시스템 로그인'} <ArrowRight size={18} />
+            {loading ? '접속 중...' : '로그인'} <ArrowRight size={18} />
           </button>
         </form>
 
         <div className="login-footer">
-          <ShieldCheck size={16} /> 
-          <span>로컬 데이터베이스 연결 상태: {pb.authStore.isValid ? '정상' : '로그인 필요'}</span>
+          <ShieldCheck size={16} />
+          <span>인증 상태: {pb.authStore.isValid ? '로그인됨' : '로그인 필요'}</span>
         </div>
       </div>
     </div>
