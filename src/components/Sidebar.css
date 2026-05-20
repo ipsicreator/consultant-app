@@ -138,3 +138,31 @@
   font-size: 0.75rem;
   color: var(--accent-color);
 }
+
+.sidebar.collapsed {
+  width: 80px;
+}
+
+.collapse-btn {
+  position: absolute;
+  right: -10px;
+  top: 30px;
+  background: var(--bg-surface);
+  border: 1px solid var(--panel-border-glow);
+  color: var(--text-main);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: var(--trans-fast);
+}
+
+.collapse-btn:hover {
+  background: var(--primary);
+  transform: scale(1.1);
+}
+
