@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Users,
   FileText,
@@ -49,8 +49,11 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
     <div className={`sidebar glass-panel ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
         <div className="logo-container">
-          <div className="logo-icon">S</div>
-          {!isCollapsed && <span className="brand-name">SUPRIMA</span>}
+          {isCollapsed ? (
+            <div className="logo-icon" style={{ color: '#1e293b', fontWeight: 'bold', fontSize: '1.2rem' }}>S</div>
+          ) : (
+            <img src="/logo.png" alt="수프리마 플랫폼" className="brand-logo" />
+          )}
         </div>
         {!isCollapsed && <p className="subtitle">교과 세특 코칭 플랫폼</p>}
         <button className="collapse-btn" onClick={() => setIsCollapsed(!isCollapsed)}>
