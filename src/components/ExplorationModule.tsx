@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Lightbulb, BookOpen, Sparkles, Send, RefreshCw, X, ArrowLeft, Calendar } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { SUBJECTS, SUBJECT_SAMPLES } from '../lib/explorationConfig';
+import { SUBJECTS, DEFAULT_CATEGORY_MAP } from '../lib/explorationConfig';
 import './ExplorationModule.css';
 
 interface ExplorationModuleProps {
@@ -141,19 +141,18 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
     }
   };
 
-  const currentSampleTopics = SUBJECT_SAMPLES[activeSubject] || SUBJECT_SAMPLES['과학'];
+  const currentMapCards = DEFAULT_CATEGORY_MAP[activeSubject] || DEFAULT_CATEGORY_MAP['과학'];
 
   return (
     <div className="explore-wrap fade-in">
       
-      {/* 1. Top Title Only */}
-      <div className="top-title-bar">
-        <button className="back-btn-explore" onClick={onBack}><ArrowLeft size={20} /> 돌아가기</button>
-        <h2><Sparkles size={20} /> 주제탐구 활동 생성기</h2>
-      </div>
+      {/* 1층 - Top Title & Subject Tabs */}
+      <div className="top-layer">
+        <div className="top-title-bar">
+          <button className="back-btn-explore" onClick={onBack}><ArrowLeft size={20} /> 돌아가기</button>
+          <h2><Sparkles size={20} /> 주제탐구 활동 생성기</h2>
+        </div>
 
-      {/* 2. Subject Tabs & 3 Sample Topics (Middle Layer) */}
-      <div className="middle-layer">
         <div className="subject-tabs">
           {SUBJECTS.map(sub => (
             <button 
@@ -165,17 +164,23 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
             </button>
           ))}
         </div>
+      </div>
 
-        <div className="sample-topics-section">
-          <h3 className="section-sub-title">[{activeSubject}] 대표 탐구 주제 예시</h3>
-          <div className="sample-grid">
-            {currentSampleTopics.map((topic, idx) => (
-              <div key={idx} className="sample-card">
-                <h4>{topic.title}</h4>
-                <p>{topic.desc}</p>
-              </div>
-            ))}
-          </div>
+      {/* 2층 - Course-to-Inquiry Map */}
+      <div className="middle-layer map-layer">
+        <div className="map-header">
+          <h3 className="map-main-title">Course-to-Inquiry Map</h3>
+          <p className="map-sub-title">교과 개념을 탐구 질문으로 바꾸는 연결 지도</p>
+        </div>
+
+        <div className="explore-grid">
+          {currentMapCards.map((card, idx) => (
+            <div key={idx} className="map-card glass-panel">
+              <span className="card-tag">{card.title}</span>
+              <h4 className="card-subtitle">{card.subtitle}</h4>
+              <p className="card-desc">{card.desc}</p>
+            </div>
+          ))}
         </div>
       </div>
 
