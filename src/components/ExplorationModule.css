@@ -7,7 +7,6 @@
   padding: 10px;
 }
 
-/* 1. Header & Subject Tabs */
 .explore-header {
   display: flex;
   flex-direction: column;
@@ -137,8 +136,8 @@
   flex-shrink: 0;
 }
 
-/* 4. Input Section */
-.explore-input-section {
+/* Generator Form Styles (Now at Top) */
+.explore-input-section.top-generator {
   background: rgba(0, 0, 0, 0.25);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 16px;
@@ -146,10 +145,54 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  margin-top: 20px;
+  margin-bottom: 10px;
 }
-.input-header h2 { margin: 0 0 8px 0; display: flex; align-items: center; gap: 8px; color: #fff; }
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+.input-header h2 { margin: 0; display: flex; align-items: center; gap: 8px; color: #fff; }
 .input-header p { margin: 0; color: var(--text-muted); font-size: 0.95rem; }
+
+.generator-filters {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 150px;
+}
+.unit-input {
+  flex: 2;
+}
+.filter-group label {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.filter-group select, .filter-group input {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 12px;
+  color: #fff;
+  font-size: 0.95rem;
+}
+.filter-group select:focus, .filter-group input:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: rgba(255,255,255,0.1);
+}
+.filter-group select option {
+  background: #1e293b;
+  color: #fff;
+}
 
 .keyword-matrix {
   display: grid;

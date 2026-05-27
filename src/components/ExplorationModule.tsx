@@ -60,8 +60,14 @@ const fallbackSuggestions = (a: string, b: string, c: string, d: string): Sugges
 const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBack }) => {
   const initialKeywords = JSON.parse(sessionStorage.getItem('exploration_keywords') || '{}');
   
+  // Admin Map Tabs State
   const [activeSubject, setActiveSubject] = useState('과학');
   const [mapData, setMapData] = useState<Record<string, { title: string; subtitle: string; desc: string }[]>>(DEFAULT_CATEGORY_MAP);
+  
+  // Generator Form State
+  const [genSubject, setGenSubject] = useState('국수영');
+  const [genGrade, setGenGrade] = useState('1학년');
+  const [genUnit, setGenUnit] = useState('');
   
   const [studentKeyword1, setStudentKeyword1] = useState(initialKeywords.student?.[0] || '');
   const [studentKeyword2, setStudentKeyword2] = useState(initialKeywords.student?.[1] || '');
@@ -114,12 +120,18 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
 
       const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
       const prompt = `학생명: ${studentData?.name || '학생'}
-학생부 추출 핵심 키워드: ${sKeys.join(', ')}
-컨설턴트가 추가한 희망 진로/주제 키워드: ${uKeys.join(', ')}
+[탐구 조건]
+- 교과군: ${genSubject}
+- 학년: ${genGrade}
+- 단원명/주제: ${genUnit || '지정되지 않음'}
+- 학생부 추출 핵심 키워드: ${sKeys.join(', ')}
+- 컨설턴트 추가(진로/관심사) 키워드: ${uKeys.join(', ')}
 
-위 키워드들을 완벽하게 융합하여, 입학사정관의 눈길을 사로잡을 수 있는 고품질의 [심화 탐구활동 주제]를 정확히 4개 생성해줘.
+위 조건과 키워드들을 완벽하게 융합하여, 입학사정관의 눈길을 사로잡을 수 있는 고품질의 [심화 탐구활동 주제]를 정확히 4개 생성해줘.
 
 조건:
+- 학생의 학년(${genGrade}) 수준에 맞는 깊이여야 함.
+- 입력된 단원(${genUnit})과 교과군(${genSubject})의 핵심 성취기준과 직결되어야 함.
 - 각 주제는 서로 다른 접근 방식(예: 실험형, 문헌조사형, 데이터분석형, 독서융합형)을 가져야 함.
 - 반드시 추천 독서 1권을 매핑해야 함.
 
@@ -154,56 +166,44 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
 
   return (
     <div className="explore-wrap fade-in">
-      {/* 1. Header & Subject Tabs */}
-      <div className="explore-header">
-        <button className="back-btn-explore" onClick={onBack}><ArrowLeft size={20} /> 돌아가기</button>
-        <div className="explore-title">
-          <h1>교과 개념을 탐구 질문으로 바꾸는 연결 지도</h1>
-          <p>이 영역의 목적은 과목명 안내가 아니라 “어느 수업 개념에서 출발해 어떤 방법으로 탐구할 것인가”를 결정하도록 돕는 것입니다. 과목은 탐구의 출발점이고, 변인·자료·모델은 탐구의 깊이를 보여주는 증거입니다.</p>
-        </div>
-        
-        <div className="subject-tabs">
-          {SUBJECTS.map(sub => (
-            <button 
-              key={sub} 
-              className={`subject-tab ${activeSubject === sub ? 'active' : ''}`}
-              onClick={() => setActiveSubject(sub)}
-            >
-              {sub}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 2. Grid Cards (Embedded Screen Style) */}
-      <div className="explore-grid">
-        {currentCards.map((card, idx) => (
-          <div key={idx} className="map-card">
-            <span className="card-tag">{card.title}</span>
-            <h3 className="card-subtitle">{card.subtitle}</h3>
-            <p className="card-desc">{card.desc}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* 3. Flow Diagram */}
-      <div className="explore-flow">
-        {FLOW_STEPS.map((step, idx) => (
-          <React.Fragment key={step.no}>
-            <div className="flow-step">
-              <span className="step-no">{step.no}. {step.title}</span>
-              <p className="step-desc">{step.desc}</p>
-            </div>
-            {idx < FLOW_STEPS.length - 1 && <ChevronRight className="flow-arrow" size={24} />}
-          </React.Fragment>
-        ))}
-      </div>
-
-      {/* 4. Input Section (Moved to Bottom) */}
-      <section className="explore-input-section">
+      
+      {/* 1. Input Section (Moved to TOP) */}
+      <section className="explore-input-section top-generator">
         <div className="input-header">
-          <h2><Sparkles size={20} /> 탐구활동 제안 생성기</h2>
-          <p>학생부 추출 키워드와 원장님이 기입한 키워드를 융합하여 4~5개의 완벽한 심화 탐구 주제를 뽑아냅니다.</p>
+          <div className="title-row">
+            <button className="back-btn-explore" onClick={onBack}><ArrowLeft size={20} /> 돌아가기</button>
+            <h2><Sparkles size={20} /> 주제탐구 활동 생성기</h2>
+          </div>
+          <p>교과, 학년, 단원 및 추출된 키워드를 기반으로 4~5개의 완벽한 심화 탐구 주제를 뽑아냅니다.</p>
+        </div>
+
+        <div className="generator-filters">
+          <div className="filter-group">
+            <label>교과군</label>
+            <select value={genSubject} onChange={(e) => setGenSubject(e.target.value)}>
+              <option value="국수영">국수영</option>
+              <option value="사회탐구(한국사포함)">사회탐구 (한국사포함)</option>
+              <option value="과학탐구">과학탐구</option>
+              <option value="정보">정보</option>
+            </select>
+          </div>
+          <div className="filter-group">
+            <label>학년</label>
+            <select value={genGrade} onChange={(e) => setGenGrade(e.target.value)}>
+              <option value="1학년">1학년</option>
+              <option value="2학년">2학년</option>
+              <option value="3학년">3학년</option>
+            </select>
+          </div>
+          <div className="filter-group unit-input">
+            <label>단원명 (직접 입력)</label>
+            <input 
+              type="text" 
+              placeholder="예: 물질의 규칙성, 미분과 적분" 
+              value={genUnit} 
+              onChange={(e) => setGenUnit(e.target.value)} 
+            />
+          </div>
         </div>
 
         <div className="keyword-matrix">
@@ -223,9 +223,53 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
 
         <button className="btn-primary generate-btn" onClick={generate} disabled={isGenerating}>
           {isGenerating ? <RefreshCw className="spin" size={20} /> : <Send size={20} />}
-          <span>{isGenerating ? 'AI가 학생 맞춤형 탐구 주제를 4~5개 설계 중입니다...' : '새로운 창에서 탐구활동 제안 4~5개 생성하기'}</span>
+          <span>{isGenerating ? 'AI가 학생 맞춤형 탐구 주제를 4~5개 설계 중입니다...' : '새로운 창에서 탐구활동 제안 생성하기'}</span>
         </button>
       </section>
+
+      {/* 2. Header & Subject Tabs */}
+      <div className="explore-header">
+        <div className="explore-title">
+          <h1>교과 개념을 탐구 질문으로 바꾸는 연결 지도</h1>
+          <p>이 영역의 목적은 과목명 안내가 아니라 “어느 수업 개념에서 출발해 어떤 방법으로 탐구할 것인가”를 결정하도록 돕는 것입니다.</p>
+        </div>
+        
+        <div className="subject-tabs">
+          {SUBJECTS.map(sub => (
+            <button 
+              key={sub} 
+              className={`subject-tab ${activeSubject === sub ? 'active' : ''}`}
+              onClick={() => setActiveSubject(sub)}
+            >
+              {sub}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 3. Grid Cards (Embedded Screen Style) */}
+      <div className="explore-grid">
+        {currentCards.map((card, idx) => (
+          <div key={idx} className="map-card">
+            <span className="card-tag">{card.title}</span>
+            <h3 className="card-subtitle">{card.subtitle}</h3>
+            <p className="card-desc">{card.desc}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* 4. Flow Diagram */}
+      <div className="explore-flow">
+        {FLOW_STEPS.map((step, idx) => (
+          <React.Fragment key={step.no}>
+            <div className="flow-step">
+              <span className="step-no">{step.no}. {step.title}</span>
+              <p className="step-desc">{step.desc}</p>
+            </div>
+            {idx < FLOW_STEPS.length - 1 && <ChevronRight className="flow-arrow" size={24} />}
+          </React.Fragment>
+        ))}
+      </div>
 
       {/* 5. Result Modal (Fullscreen) */}
       {result && (
