@@ -87,7 +87,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
           </li>
           <li className={currentView === 'bigdata' ? 'active' : ''} onClick={() => onNavigate('bigdata')}>
             <Database size={20} />
-            {!isCollapsed && <span>빅데이터 지식정보플랫폼</span>}
+            {!isCollapsed && <span>대학 지식정보 플랫폼</span>}
           </li>
         </ul>
       </nav>
