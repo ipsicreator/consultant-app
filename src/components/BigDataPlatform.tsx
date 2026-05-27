@@ -14,7 +14,7 @@ const BigDataPlatform: React.FC = () => {
     },
     {
       id: 'skku',
-      title: '성균관대학교 오거서',
+      title: '성균관대학교 오거서 독서 활동 플랫폼',
       desc: '성균관대학교에서 제공하는 독서 리뷰, 추천 도서 및 다양한 독서 활동 정보를 열람할 수 있습니다.',
       url: 'https://book.skku.edu/review',
       image: '/images/skku_preview.png',
