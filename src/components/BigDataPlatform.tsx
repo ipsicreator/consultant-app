@@ -14,10 +14,10 @@ const BigDataPlatform: React.FC = () => {
     },
     {
       id: 'skku',
-      title: '성균관대학교 전공가이드북 (웹진)',
-      desc: '성균관대학교의 학과별 안내, 교육과정, 진로 정보를 열람할 수 있습니다.',
+      title: '성균관대학교 오거서',
+      desc: '성균관대학교에서 제공하는 독서 리뷰, 추천 도서 및 다양한 독서 활동 정보를 열람할 수 있습니다.',
       url: 'https://book.skku.edu/review',
-      image: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=800',
+      image: '/images/skku_preview.png',
       icon: <BookOpen size={24} color="#10b981" />,
       bgColor: 'rgba(16, 185, 129, 0.1)'
     }
