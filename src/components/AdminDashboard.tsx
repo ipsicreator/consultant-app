@@ -20,7 +20,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   
   // 현재 로그인 사용자와 역할 확인 (PocketBase authStore 사용)
-  const currentUser = pb.authStore?.model || {};
+  const currentUser = (pb.authStore?.model as any) || {};
   const currentRole = (currentUser.role || '').toLowerCase(); // 'master' | 'admin' | 'consultant'
 
   // Exploration Map Editor State
