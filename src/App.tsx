@@ -17,9 +17,21 @@ function App() {
   const [selectedStudent, setSelectedStudent] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
-    return pb.authStore.onChange((_token, model) => {
+    const handleGlobalNav = (e: any) => {
+      if (e.detail) {
+        handleNavigate(e.detail);
+      }
+    };
+    window.addEventListener('NAVIGATE_TO', handleGlobalNav);
+    
+    const unsubscribe = pb.authStore.onChange((_token, model) => {
       setIsAuthenticated(!!model);
     });
+    
+    return () => {
+      window.removeEventListener('NAVIGATE_TO', handleGlobalNav);
+      unsubscribe();
+    };
   }, []);
 
   const handleNavigate = (view: string) => {

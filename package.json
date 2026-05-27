@@ -13,6 +13,7 @@
     "@google/generative-ai": "^0.24.1",
     "dotenv": "^17.4.2",
     "lucide-react": "^1.8.0",
+    "pdfjs-dist": "^3.11.174",
     "pocketbase": "^0.22.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",

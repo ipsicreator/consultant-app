@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Lightbulb, BookOpen, Sparkles, Send, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import './ExplorationModule.css';
@@ -34,10 +34,15 @@ const fallbackSuggestions = (a: string, b: string, c: string, d: string): Sugges
 ];
 
 const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData }) => {
-  const [studentKeyword1, setStudentKeyword1] = useState('데이터 분석');
-  const [studentKeyword2, setStudentKeyword2] = useState('발표');
-  const [userKeyword1, setUserKeyword1] = useState('AI 교육');
-  const [userKeyword2, setUserKeyword2] = useState('사회문제 해결');
+  const initialKeywords = JSON.parse(sessionStorage.getItem('exploration_keywords') || '{}');
+  
+  const [studentKeyword1, setStudentKeyword1] = useState(initialKeywords.student?.[0] || '데이터 분석');
+  const [studentKeyword2, setStudentKeyword2] = useState(initialKeywords.student?.[1] || '발표');
+  const [studentKeyword3, setStudentKeyword3] = useState(initialKeywords.student?.[2] || '');
+  const [userKeyword1, setUserKeyword1] = useState(initialKeywords.user?.[0] || 'AI 교육');
+  const [userKeyword2, setUserKeyword2] = useState(initialKeywords.user?.[1] || '사회문제 해결');
+  const [userKeyword3, setUserKeyword3] = useState(initialKeywords.user?.[2] || '');
+  
   const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState<Suggestion[]>([]);
 
@@ -45,8 +50,11 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData }) =>
   const genAI = useMemo(() => new GoogleGenerativeAI(apiKey), [apiKey]);
 
   const generate = async () => {
-    if (![studentKeyword1, studentKeyword2, userKeyword1, userKeyword2].every((v) => v.trim())) {
-      alert('키워드 4개(학생부 2개 + 사용자 2개)를 모두 입력해 주세요.');
+    const sKeys = [studentKeyword1, studentKeyword2, studentKeyword3].filter(k => k.trim());
+    const uKeys = [userKeyword1, userKeyword2, userKeyword3].filter(k => k.trim());
+    
+    if (sKeys.length === 0 && uKeys.length === 0) {
+      alert('최소 1개 이상의 키워드를 입력해 주세요.');
       return;
     }
 
@@ -58,7 +66,11 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData }) =>
       }
 
       const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-      const prompt = `학생: ${studentData?.name || '학생'}\n학생부 키워드: ${studentKeyword1}, ${studentKeyword2}\n사용자 키워드: ${userKeyword1}, ${userKeyword2}\n요청: 독서 포함 탐구활동 제안 2개를 JSON으로 반환\n키: [{title, objective, reading:{bookTitle,reason}, activitySteps[], output}]`;
+      const prompt = `학생: ${studentData?.name || '학생'}
+학생부 키워드: ${sKeys.join(', ')}
+사용자 키워드: ${uKeys.join(', ')}
+요청: 독서 포함 탐구활동 제안 2개를 JSON으로 반환
+키: [{title, objective, reading:{bookTitle,reason}, activitySteps[], output}]`;
       const raw = (await (await model.generateContent(prompt)).response).text().replace(/```json|```/g, '').trim();
       const parsed = JSON.parse(raw.match(/\[[\s\S]*\]/)?.[0] || raw);
       if (Array.isArray(parsed) && parsed.length > 0) setResult(parsed);
@@ -75,13 +87,15 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData }) =>
     <div className="explore-wrap">
       <section className="explore-input glass-panel">
         <h2><Sparkles size={18} /> 탐구활동 제안 입력</h2>
-        <p>학생부추출 키워드 2개 + 사용자 키워드 2개 입력 후 제안을 생성합니다.</p>
+        <p>학생부추출 키워드(최대 3개) + 사용자 추가 키워드(최대 3개)를 기반으로 제안을 생성합니다.</p>
 
         <div className="grid-2">
           <label>학생부 키워드 1<input value={studentKeyword1} onChange={(e) => setStudentKeyword1(e.target.value)} /></label>
-          <label>학생부 키워드 2<input value={studentKeyword2} onChange={(e) => setStudentKeyword2(e.target.value)} /></label>
           <label>사용자 키워드 1<input value={userKeyword1} onChange={(e) => setUserKeyword1(e.target.value)} /></label>
+          <label>학생부 키워드 2<input value={studentKeyword2} onChange={(e) => setStudentKeyword2(e.target.value)} /></label>
           <label>사용자 키워드 2<input value={userKeyword2} onChange={(e) => setUserKeyword2(e.target.value)} /></label>
+          <label>학생부 키워드 3<input value={studentKeyword3} onChange={(e) => setStudentKeyword3(e.target.value)} /></label>
+          <label>사용자 키워드 3<input value={userKeyword3} onChange={(e) => setUserKeyword3(e.target.value)} /></label>
         </div>
 
         <button className="btn-primary" onClick={generate} disabled={isGenerating}>
