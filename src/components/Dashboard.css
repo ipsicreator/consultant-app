@@ -17,6 +17,8 @@
   background: rgba(255, 255, 255, 0.02);
 }
 
+
+
 .search-bar {
   display: flex;
   align-items: center;
@@ -258,6 +260,18 @@
   background: rgba(56, 189, 248, 0.15);
   border-color: var(--accent);
   transform: translateX(4px);
+}
+
+.action-btn.primary-action {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px var(--primary-glow);
+}
+
+.action-btn.primary-action:hover {
+  transform: translateX(4px);
+  box-shadow: 0 6px 16px var(--primary-glow);
 }
 
 /* Modal */

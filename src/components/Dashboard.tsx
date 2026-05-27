@@ -52,24 +52,29 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectStudent }) => {
     loadAcademyAndStudents();
   }, []);
 
-  const handleCreateStudent = async () => {
+  const handleCreateStudent = async (goToAnalysis: boolean = false) => {
     if (!newStudent.name || !newStudent.school || !newStudent.grade || !academyId) {
       alert("모든 필드를 입력해 주세요!");
       return;
     }
 
     try {
-      await pb.collection('suprima_students').create({
+      const createdRecord = await pb.collection('suprima_students').create({
         name: newStudent.name,
         school: newStudent.school,
         grade: newStudent.grade,
         enrollment_status: '미등록',
         academy_id: academyId
       });
+      
       setIsModalOpen(false);
       setNewStudent({ name: '', school: '', grade: '' });
       fetchStudents(academyId);
       setActiveTab('미등록');
+
+      if (goToAnalysis) {
+        onSelectStudent(createdRecord.id, createdRecord.name);
+      }
     } catch (error: any) {
       alert("등록 실패: " + error.message);
     }
@@ -156,8 +161,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectStudent }) => {
                         </div>
                       </td>
                       <td>
-                        <button className="action-btn" onClick={() => onSelectStudent(student.id, student.name)}>
-                          <span>기록 및 분석 진입</span><ArrowRight size={16} />
+                        <button className="action-btn primary-action" onClick={() => onSelectStudent(student.id, student.name)}>
+                          <span>학생부 분석 시작</span><ArrowRight size={16} />
                         </button>
                       </td>
                     </tr>
@@ -196,9 +201,14 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectStudent }) => {
                 </select>
               </div>
 
-              <button className="btn-primary full-width" onClick={handleCreateStudent}>
-                <Save size={18} /> 학생 등록 (미등록 상태)
-              </button>
+              <div className="modal-actions" style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                <button className="btn-secondary full-width" onClick={() => handleCreateStudent(false)}>
+                  <Save size={18} /> 저장 후 목록으로
+                </button>
+                <button className="btn-primary full-width" onClick={() => handleCreateStudent(true)}>
+                  <BookOpen size={18} /> 저장 후 학생부 분석 시작
+                </button>
+              </div>
             </div>
           </div>
         </div>
