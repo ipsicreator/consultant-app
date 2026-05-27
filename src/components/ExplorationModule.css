@@ -168,9 +168,6 @@
   flex: 1;
   min-width: 150px;
 }
-.unit-input {
-  flex: 2;
-}
 .filter-group label {
   font-size: 0.9rem;
   color: var(--text-muted);

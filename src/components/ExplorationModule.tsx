@@ -67,7 +67,6 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
   // Generator Form State
   const [genSubject, setGenSubject] = useState('국수영');
   const [genGrade, setGenGrade] = useState('1학년');
-  const [genUnit, setGenUnit] = useState('');
   
   const [studentKeyword1, setStudentKeyword1] = useState(initialKeywords.student?.[0] || '');
   const [studentKeyword2, setStudentKeyword2] = useState(initialKeywords.student?.[1] || '');
@@ -123,7 +122,6 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
 [탐구 조건]
 - 교과군: ${genSubject}
 - 학년: ${genGrade}
-- 단원명/주제: ${genUnit || '지정되지 않음'}
 - 학생부 추출 핵심 키워드: ${sKeys.join(', ')}
 - 컨설턴트 추가(진로/관심사) 키워드: ${uKeys.join(', ')}
 
@@ -131,7 +129,7 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
 
 조건:
 - 학생의 학년(${genGrade}) 수준에 맞는 깊이여야 함.
-- 입력된 단원(${genUnit})과 교과군(${genSubject})의 핵심 성취기준과 직결되어야 함.
+- 선택된 교과군(${genSubject})의 성취기준 및 키워드의 맥락과 완벽히 직결되어야 함.
 - 각 주제는 서로 다른 접근 방식(예: 실험형, 문헌조사형, 데이터분석형, 독서융합형)을 가져야 함.
 - 반드시 추천 독서 1권을 매핑해야 함.
 
@@ -194,15 +192,6 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
               <option value="2학년">2학년</option>
               <option value="3학년">3학년</option>
             </select>
-          </div>
-          <div className="filter-group unit-input">
-            <label>단원명 (직접 입력)</label>
-            <input 
-              type="text" 
-              placeholder="예: 물질의 규칙성, 미분과 적분" 
-              value={genUnit} 
-              onChange={(e) => setGenUnit(e.target.value)} 
-            />
           </div>
         </div>
 
