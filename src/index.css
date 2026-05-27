@@ -17,9 +17,9 @@
   --panel-border: rgba(255, 255, 255, 0.08);
   --panel-border-glow: rgba(255, 255, 255, 0.15);
   
-  --text-main: #f1f5f9;
-  --text-muted: #94a3b8;
-  --text-dim: #64748b;
+  --text-main: #ffffff;
+  --text-muted: #cbd5e1;
+  --text-dim: #94a3b8;
   
   --success: #10b981;
   --warning: #f59e0b;
