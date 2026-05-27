@@ -166,56 +166,11 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
   return (
     <div className="explore-wrap fade-in">
       
-      {/* 1. Input Section (Moved to TOP) */}
-      <section className="explore-input-section top-generator">
-        <div className="input-header">
-          <div className="title-row">
-            <button className="back-btn-explore" onClick={onBack}><ArrowLeft size={20} /> 돌아가기</button>
-            <h2><Sparkles size={20} /> 주제탐구 활동 생성기</h2>
-          </div>
-          <p>교과, 학년, 단원 및 추출된 키워드를 기반으로 4~5개의 완벽한 심화 탐구 주제를 뽑아냅니다.</p>
-        </div>
-
-        <div className="generator-filters">
-          <div className="filter-group">
-            <label>교과군</label>
-            <select value={genSubject} onChange={(e) => setGenSubject(e.target.value)}>
-              <option value="국수영">국수영</option>
-              <option value="사회탐구(한국사포함)">사회탐구 (한국사포함)</option>
-              <option value="과학탐구">과학탐구</option>
-              <option value="정보">정보</option>
-            </select>
-          </div>
-          <div className="filter-group">
-            <label>학년</label>
-            <select value={genGrade} onChange={(e) => setGenGrade(e.target.value)}>
-              <option value="1학년">1학년</option>
-              <option value="2학년">2학년</option>
-              <option value="3학년">3학년</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="keyword-matrix">
-          <div className="keyword-col">
-            <label className="col-label">학생부 추출 키워드</label>
-            <input placeholder="키워드 1" value={studentKeyword1} onChange={(e) => setStudentKeyword1(e.target.value)} />
-            <input placeholder="키워드 2" value={studentKeyword2} onChange={(e) => setStudentKeyword2(e.target.value)} />
-            <input placeholder="키워드 3" value={studentKeyword3} onChange={(e) => setStudentKeyword3(e.target.value)} />
-          </div>
-          <div className="keyword-col">
-            <label className="col-label">사용자 추가 키워드 (진로/관심사)</label>
-            <input placeholder="키워드 1" value={userKeyword1} onChange={(e) => setUserKeyword1(e.target.value)} />
-            <input placeholder="키워드 2" value={userKeyword2} onChange={(e) => setUserKeyword2(e.target.value)} />
-            <input placeholder="키워드 3" value={userKeyword3} onChange={(e) => setUserKeyword3(e.target.value)} />
-          </div>
-        </div>
-
-        <button className="btn-primary generate-btn" onClick={generate} disabled={isGenerating}>
-          {isGenerating ? <RefreshCw className="spin" size={20} /> : <Send size={20} />}
-          <span>{isGenerating ? 'AI가 학생 맞춤형 탐구 주제를 4~5개 설계 중입니다...' : '새로운 창에서 탐구활동 제안 생성하기'}</span>
-        </button>
-      </section>
+      {/* 1. Top Title Only */}
+      <div className="top-title-bar">
+        <button className="back-btn-explore" onClick={onBack}><ArrowLeft size={20} /> 돌아가기</button>
+        <h2><Sparkles size={20} /> 주제탐구 활동 생성기</h2>
+      </div>
 
       {/* 2. Subject Tabs & 3 Sample Topics (Middle Layer) */}
       <div className="middle-layer">
@@ -274,6 +229,53 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
           </React.Fragment>
         ))}
       </div>
+
+      {/* 4. Input Section (Moved to Bottom) */}
+      <section className="explore-input-section bottom-generator">
+        <div className="input-header">
+          <p className="generator-hint">교과, 학년 및 추출된 키워드를 기반으로 4~5개의 완벽한 심화 탐구 주제를 뽑아냅니다.</p>
+        </div>
+
+        <div className="generator-filters">
+          <div className="filter-group">
+            <label>교과군</label>
+            <select value={genSubject} onChange={(e) => setGenSubject(e.target.value)}>
+              <option value="국수영">국수영</option>
+              <option value="사회탐구(한국사포함)">사회탐구 (한국사포함)</option>
+              <option value="과학탐구">과학탐구</option>
+              <option value="정보">정보</option>
+            </select>
+          </div>
+          <div className="filter-group">
+            <label>학년</label>
+            <select value={genGrade} onChange={(e) => setGenGrade(e.target.value)}>
+              <option value="1학년">1학년</option>
+              <option value="2학년">2학년</option>
+              <option value="3학년">3학년</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="keyword-matrix">
+          <div className="keyword-col">
+            <label className="col-label">학생부 추출 키워드</label>
+            <input placeholder="키워드 1" value={studentKeyword1} onChange={(e) => setStudentKeyword1(e.target.value)} />
+            <input placeholder="키워드 2" value={studentKeyword2} onChange={(e) => setStudentKeyword2(e.target.value)} />
+            <input placeholder="키워드 3" value={studentKeyword3} onChange={(e) => setStudentKeyword3(e.target.value)} />
+          </div>
+          <div className="keyword-col">
+            <label className="col-label">사용자 추가 키워드 (진로/관심사)</label>
+            <input placeholder="키워드 1" value={userKeyword1} onChange={(e) => setUserKeyword1(e.target.value)} />
+            <input placeholder="키워드 2" value={userKeyword2} onChange={(e) => setUserKeyword2(e.target.value)} />
+            <input placeholder="키워드 3" value={userKeyword3} onChange={(e) => setUserKeyword3(e.target.value)} />
+          </div>
+        </div>
+
+        <button className="btn-primary generate-btn" onClick={generate} disabled={isGenerating}>
+          {isGenerating ? <RefreshCw className="spin" size={20} /> : <Send size={20} />}
+          <span>{isGenerating ? 'AI가 학생 맞춤형 탐구 주제를 4~5개 설계 중입니다...' : '새로운 창에서 탐구활동 제안 4~5개 생성하기'}</span>
+        </button>
+      </section>
 
       {/* 5. Result Modal (Fullscreen) */}
       {result && (
