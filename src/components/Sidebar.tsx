@@ -21,7 +21,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
-  const [userName, setUserName] = useState('컨설턴트');
+  const [userName, setUserName] = useState('이기욱');
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
@@ -107,7 +107,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
           {!isCollapsed && (
             <div className="user-info">
               <span className="name">{userName} 님</span>
-              <span className="role">입시 컨설턴트</span>
+              <span className="role">마스터 / 어드민 / 컨설턴트</span>
             </div>
           )}
         </div>

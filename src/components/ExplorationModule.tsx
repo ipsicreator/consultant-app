@@ -166,10 +166,10 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
         </div>
       </div>
 
-      {/* 2층 - Course-to-Inquiry Map */}
+      {/* 2층 - 교과 탐구 지도 */}
       <div className="middle-layer map-layer">
         <div className="map-header">
-          <h3 className="map-main-title">Course-to-Inquiry Map</h3>
+          <h3 className="map-main-title">교과 탐구 지도</h3>
           <p className="map-sub-title">교과 개념을 탐구 질문으로 바꾸는 연결 지도</p>
         </div>
 
