@@ -9,11 +9,12 @@ import MonthlyPlanner from './components/MonthlyPlanner';
 import Settings from './components/Settings';
 import Login from './components/Login';
 import LicenseGuard from './components/LicenseGuard';
+import BigDataPlatform from './components/BigDataPlatform';
 import { pb } from './lib/pocketbase';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(!!pb.authStore.model);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'student' | 'exploration' | 'inquiry_guide' | 'admin' | 'planner' | 'settings'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'student' | 'exploration' | 'inquiry_guide' | 'admin' | 'planner' | 'settings' | 'bigdata'>('dashboard');
   const [selectedStudent, setSelectedStudent] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
@@ -66,6 +67,7 @@ function App() {
           {currentView === 'admin' && <AdminDashboard />}
           {currentView === 'planner' && <MonthlyPlanner />}
           {currentView === 'settings' && <Settings />}
+          {currentView === 'bigdata' && <BigDataPlatform />}
         </div>
       </div>
     </LicenseGuard>

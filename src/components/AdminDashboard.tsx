@@ -8,7 +8,8 @@ import {
   MoreVertical,
   Search,
   Save,
-  Map
+  Map,
+  Trash2
 } from 'lucide-react';
 import { pb } from '../lib/pocketbase';
 import { DEFAULT_CATEGORY_MAP, SUBJECTS, GLOBAL_MAP_ID } from '../lib/explorationConfig';
@@ -18,6 +19,10 @@ const AdminDashboard = () => {
   const [staff, setStaff] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
+  // 현재 로그인 사용자와 역할 확인 (PocketBase authStore 사용)
+  const currentUser = pb.authStore?.model || {};
+  const currentRole = (currentUser.role || '').toLowerCase(); // 'master' | 'admin' | 'consultant'
+
   // Exploration Map Editor State
   const [mapData, setMapData] = useState<Record<string, { title: string; subtitle: string; desc: string }[]>>({});
   const [activeSubject, setActiveSubject] = useState('과학');
@@ -37,6 +42,16 @@ const AdminDashboard = () => {
       console.error('Staff fetch error:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteConsultant = async (id: string) => {
+    if (!confirm('정말 삭제하시겠습니까?')) return;
+    try {
+      await pb.collection('suprima_profiles').delete(id);
+      fetchStaff();
+    } catch (error) {
+      console.error('Delete consultant error:', error);
     }
   };
 
@@ -104,10 +119,12 @@ const AdminDashboard = () => {
             <p>소속 컨설턴트 및 학생 배정 현황을 관리합니다.</p>
           </div>
         </div>
-        <button className="btn-primary">
-          <UserPlus size={18} />
-          <span>컨설턴트 등록</span>
-        </button>
+        { (currentRole === 'master' || currentRole === 'admin') && (
+          <button className="btn-primary">
+            <UserPlus size={18} />
+            <span>컨설턴트 등록</span>
+          </button>
+        ) }
       </header>
 
       <div className="admin-grid">
@@ -146,6 +163,11 @@ const AdminDashboard = () => {
                     <button className="icon-btn"><Mail size={18} /></button>
                     <button className="icon-btn"><Settings size={18} /></button>
                     <button className="icon-btn"><MoreVertical size={18} /></button>
+                    { (currentRole === 'master' || (currentRole === 'admin' && member.role !== 'master')) && (
+                      <button className="icon-btn secondary danger" onClick={() => handleDeleteConsultant(member.id)}>
+                        <Trash2 size={18} />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))

@@ -61,13 +61,17 @@ async function ensureUser(token) {
   return user.id;
 }
 
-// ── 2) suprima_profiles 컬렉션에 admin 프로필 보장 ──
+// ── 2) suprima_profiles 컬렉션에 master 프로필 보장 ──
+// email 필드로 정확히 검색 → 중복 생성 방지
 async function ensureProfile(token, userId) {
   const allProfiles = await getAllRecords(token, "suprima_profiles");
-  const existing = allProfiles.find(p => p.email === MASTER_EMAIL);
+  // email 필드로 매칭
+  const myProfiles = allProfiles.filter(p => p.email === MASTER_EMAIL);
+  console.log(`🔎  Profiles for ${MASTER_EMAIL}: ${myProfiles.length}`);
 
-  if (!existing) {
-    console.log("🆕  Creating admin profile...");
+  if (myProfiles.length === 0) {
+    // 프로필 없으면 새로 생성
+    console.log("🆕  Creating master profile...");
     const res = await fetch(`${PB_URL}/api/collections/suprima_profiles/records`, {
       method: "POST",
       headers: headers(token),
@@ -75,33 +79,41 @@ async function ensureProfile(token, userId) {
         email: MASTER_EMAIL,
         name: MASTER_NAME,
         role: "master",
-        academy_id: "suprema_main",
+        academy_id: "suprima_main",
         user: userId
       })
     });
     if (!res.ok) throw new Error("Profile creation failed: " + (await res.text()));
     const profile = await res.json();
-    console.log(`✅  Profile created → id=${profile.id} (role=admin)`);
-  } else if (existing.role !== "master") {
-    console.log("🔧  Updating profile role to admin...");
-    const res = await fetch(`${PB_URL}/api/collections/suprima_profiles/records/${existing.id}`, {
+    console.log(`✅  Profile created → id=${profile.id} (role=master)`);
+  } else {
+    // 있는 프로필 전부 master 로 보장 (중복 제거 후 첫 번째만 남기기)
+    const keep = myProfiles[0];
+    for (let i = 1; i < myProfiles.length; i++) {
+      // 중복 삭제
+      await fetch(`${PB_URL}/api/collections/suprima_profiles/records/${myProfiles[i].id}`, {
+        method: "DELETE", headers: headers(token)
+      });
+      console.log(`🗑️  Deleted duplicate profile ${myProfiles[i].id}`);
+    }
+    // 남긴 프로필 role 보장
+    const res = await fetch(`${PB_URL}/api/collections/suprima_profiles/records/${keep.id}`, {
       method: "PATCH",
       headers: headers(token),
-      body: JSON.stringify({ role: "master" })
+      body: JSON.stringify({ role: "master", email: MASTER_EMAIL, name: MASTER_NAME })
     });
     if (!res.ok) throw new Error("Profile update failed: " + (await res.text()));
-    console.log(`✅  Profile role updated to admin → id=${existing.id}`);
-  } else {
-    console.log(`✅  Profile exists (role=admin) → id=${existing.id}`);
+    const updated = await res.json();
+    console.log(`✅  Profile ${keep.id} role → ${updated.role}`);
   }
 }
 
 // ── 3) suprima_licenses 컬렉션에 활성 라이선스 보장 ──
 async function ensureLicense(token) {
   const allLicenses = await getAllRecords(token, "suprima_licenses");
-  const existing = allLicenses.find(l => l.email === MASTER_EMAIL);
+  const myLicenses = allLicenses.filter(l => l.email === MASTER_EMAIL);
 
-  if (!existing) {
+  if (myLicenses.length === 0) {
     console.log("🆕  Creating license...");
     const exp = new Date();
     exp.setFullYear(exp.getFullYear() + 5);
@@ -110,7 +122,7 @@ async function ensureLicense(token) {
       headers: headers(token),
       body: JSON.stringify({
         email: MASTER_EMAIL,
-        academy_id: "suprema_main",
+        academy_id: "suprima_main",
         expires_at: exp.toISOString(),
         active: true
       })
@@ -118,7 +130,14 @@ async function ensureLicense(token) {
     if (!res.ok) throw new Error("License creation failed: " + (await res.text()));
     console.log("✅  License created (active, 5yr)");
   } else {
-    console.log("✅  License exists");
+    // 중복 라이선스 정리
+    for (let i = 1; i < myLicenses.length; i++) {
+      await fetch(`${PB_URL}/api/collections/suprima_licenses/records/${myLicenses[i].id}`, {
+        method: "DELETE", headers: headers(token)
+      });
+      console.log(`🗑️  Deleted duplicate license ${myLicenses[i].id}`);
+    }
+    console.log(`✅  License exists → id=${myLicenses[0].id}`);
   }
 }
 

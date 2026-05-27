@@ -10,6 +10,7 @@ import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
+  Database,
 } from 'lucide-react';
 import { pb } from '../lib/pocketbase';
 import { resolveOrCreateProfile } from '../lib/profileLink';
@@ -84,6 +85,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
             <Calendar size={20} />
             {!isCollapsed && <span>학습/입시 설계</span>}
           </li>
+          <li className={currentView === 'bigdata' ? 'active' : ''} onClick={() => onNavigate('bigdata')}>
+            <Database size={20} />
+            {!isCollapsed && <span>빅데이터 지식정보플랫폼</span>}
+          </li>
         </ul>
       </nav>
 
@@ -107,7 +112,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
           {!isCollapsed && (
             <div className="user-info">
               <span className="name">{userName} 님</span>
-              <span className="role">마스터 / 어드민 / 컨설턴트</span>
+              <span className="role">마스터</span>
             </div>
           )}
         </div>

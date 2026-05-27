@@ -12,6 +12,13 @@ interface Student {
   enrollment_status: string;
   created: string;
   academy_id: string;
+  parent_phone?: string;
+  student_phone?: string;
+  gender?: string;
+  target_university?: string;
+  target_major?: string;
+  class_type?: string;
+  notes?: string;
 }
 
 interface DashboardProps {
@@ -23,7 +30,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectStudent }) => {
   const [activeTab, setActiveTab] = useState('미등록');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [newStudent, setNewStudent] = useState({ name: '', school: '', grade: '' });
+  const [newStudent, setNewStudent] = useState({
+    name: '', school: '', grade: '',
+    parent_phone: '', student_phone: '',
+    gender: '', target_university: '', target_major: '',
+    class_type: '', notes: ''
+  });
   const [academyId, setAcademyId] = useState<string | null>(null);
 
   const fetchStudents = async (academyIdParam: string) => {
@@ -53,8 +65,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectStudent }) => {
   }, []);
 
   const handleCreateStudent = async (goToAnalysis: boolean = false) => {
-    if (!newStudent.name || !newStudent.school || !newStudent.grade || !academyId) {
-      alert("모든 필드를 입력해 주세요!");
+    if (!newStudent.name || !newStudent.school || !newStudent.grade || !newStudent.student_phone || !newStudent.parent_phone || !academyId) {
+      alert("필수 항목을 모두 입력해 주세요!\n(이름, 학교, 학년, 학생 전화번호, 학부모 전화번호)");
       return;
     }
 
@@ -64,11 +76,18 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectStudent }) => {
         school: newStudent.school,
         grade: newStudent.grade,
         enrollment_status: '미등록',
-        academy_id: academyId
+        academy_id: academyId,
+        parent_phone: newStudent.parent_phone,
+        student_phone: newStudent.student_phone,
+        gender: newStudent.gender,
+        target_university: newStudent.target_university,
+        target_major: newStudent.target_major,
+        class_type: newStudent.class_type,
+        notes: newStudent.notes
       });
       
       setIsModalOpen(false);
-      setNewStudent({ name: '', school: '', grade: '' });
+      setNewStudent({ name: '', school: '', grade: '', parent_phone: '', student_phone: '', gender: '', target_university: '', target_major: '', class_type: '', notes: '' });
       fetchStudents(academyId);
       setActiveTab('미등록');
 
@@ -188,22 +207,77 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectStudent }) => {
             </div>
 
             <div className="modal-body">
-              <div className="form-group">
-                <label>학생 이름</label>
-                <input type="text" value={newStudent.name} onChange={e => setNewStudent({ ...newStudent, name: e.target.value })} placeholder="예: 홍길동" />
+              <div className="modal-section-title">📋 기본 정보</div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>학생 이름 <span className="required">*</span></label>
+                  <input type="text" value={newStudent.name} onChange={e => setNewStudent({ ...newStudent, name: e.target.value })} placeholder="예: 홍길동" />
+                </div>
+                <div className="form-group">
+                  <label>성별</label>
+                  <select value={newStudent.gender} onChange={e => setNewStudent({ ...newStudent, gender: e.target.value })}>
+                    <option value="">선택</option>
+                    <option value="남">남</option>
+                    <option value="여">여</option>
+                  </select>
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>학교명 <span className="required">*</span></label>
+                  <input type="text" value={newStudent.school} onChange={e => setNewStudent({ ...newStudent, school: e.target.value })} placeholder="예: 한국고등학교" />
+                </div>
+                <div className="form-group">
+                  <label>학년 <span className="required">*</span></label>
+                  <select value={newStudent.grade} onChange={e => setNewStudent({ ...newStudent, grade: e.target.value })}>
+                    <option value="">학년 선택</option>
+                    <option value="1">1학년</option>
+                    <option value="2">2학년</option>
+                    <option value="3">3학년</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="modal-section-title">📞 연락처</div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>학생 전화번호 <span className="required">*</span></label>
+                  <input type="text" value={newStudent.student_phone} onChange={e => setNewStudent({ ...newStudent, student_phone: e.target.value })} placeholder="예: 010-9876-5432" />
+                </div>
+                <div className="form-group">
+                  <label>학부모 전화번호 <span className="required">*</span></label>
+                  <input type="text" value={newStudent.parent_phone} onChange={e => setNewStudent({ ...newStudent, parent_phone: e.target.value })} placeholder="예: 010-1234-5678" />
+                </div>
+              </div>
+
+              <div className="modal-section-title">🎯 진학 목표 (선택)</div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>목표 대학</label>
+                  <input type="text" value={newStudent.target_university} onChange={e => setNewStudent({ ...newStudent, target_university: e.target.value })} placeholder="예: 서울대학교" />
+                </div>
+                <div className="form-group">
+                  <label>목표 학과</label>
+                  <input type="text" value={newStudent.target_major} onChange={e => setNewStudent({ ...newStudent, target_major: e.target.value })} placeholder="예: 컴퓨터공학과" />
+                </div>
+              </div>
+
+              <div className="modal-section-title">📚 수업 정보 (선택)</div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>수업 유형</label>
+                  <select value={newStudent.class_type} onChange={e => setNewStudent({ ...newStudent, class_type: e.target.value })}>
+                    <option value="">선택</option>
+                    <option value="개인">개인</option>
+                    <option value="그룹">그룹</option>
+                    <option value="온라인">온라인</option>
+                    <option value="혼합">혼합</option>
+                  </select>
+                </div>
               </div>
               <div className="form-group">
-                <label>학교명</label>
-                <input type="text" value={newStudent.school} onChange={e => setNewStudent({ ...newStudent, school: e.target.value })} placeholder="예: 교과탐구고등학교" />
-              </div>
-              <div className="form-group">
-                <label>학년</label>
-                <select value={newStudent.grade} onChange={e => setNewStudent({ ...newStudent, grade: e.target.value })}>
-                  <option value="">학년 선택</option>
-                  <option value="1">1학년</option>
-                  <option value="2">2학년</option>
-                  <option value="3">3학년</option>
-                </select>
+                <label>메모 (선택)</label>
+                <textarea value={newStudent.notes} onChange={e => setNewStudent({ ...newStudent, notes: e.target.value })} placeholder="상담 내용, 특이사항 등" rows={3} />
               </div>
 
               <div className="modal-actions" style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
