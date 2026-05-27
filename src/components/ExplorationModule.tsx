@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Lightbulb, BookOpen, Sparkles, Send, RefreshCw, ChevronRight, X, ArrowLeft } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { pb } from '../lib/pocketbase';
-import { DEFAULT_CATEGORY_MAP, SUBJECTS, GLOBAL_MAP_ID } from '../lib/explorationConfig';
+import { DEFAULT_CATEGORY_MAP, SUBJECTS, GLOBAL_MAP_ID, SUBJECT_SAMPLES } from '../lib/explorationConfig';
 import './ExplorationModule.css';
 
 interface ExplorationModuleProps {
@@ -160,7 +160,8 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
     }
   };
 
-  const currentCards = mapData[activeSubject] || DEFAULT_CATEGORY_MAP['과학']; // Fallback to 과학 for demo
+  const currentMapCards = mapData[activeSubject] || DEFAULT_CATEGORY_MAP['과학'];
+  const currentSampleTopics = SUBJECT_SAMPLES[activeSubject] || SUBJECT_SAMPLES['과학'];
 
   return (
     <div className="explore-wrap fade-in">
@@ -216,13 +217,8 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
         </button>
       </section>
 
-      {/* 2. Header & Subject Tabs */}
-      <div className="explore-header">
-        <div className="explore-title">
-          <h1>교과 개념을 탐구 질문으로 바꾸는 연결 지도</h1>
-          <p>이 영역의 목적은 과목명 안내가 아니라 “어느 수업 개념에서 출발해 어떤 방법으로 탐구할 것인가”를 결정하도록 돕는 것입니다.</p>
-        </div>
-        
+      {/* 2. Subject Tabs & 3 Sample Topics (Middle Layer) */}
+      <div className="middle-layer">
         <div className="subject-tabs">
           {SUBJECTS.map(sub => (
             <button 
@@ -234,11 +230,30 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
             </button>
           ))}
         </div>
+
+        <div className="sample-topics-section">
+          <h3 className="section-sub-title">[{activeSubject}] 대표 탐구 주제 예시</h3>
+          <div className="sample-grid">
+            {currentSampleTopics.map((topic, idx) => (
+              <div key={idx} className="sample-card">
+                <h4>{topic.title}</h4>
+                <p>{topic.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* 3. Grid Cards (Embedded Screen Style) */}
+      {/* 3. Reference Map & Flow (Bottom Layer) */}
+      <div className="explore-header" style={{ marginTop: '30px' }}>
+        <div className="explore-title">
+          <h1>교과 개념을 탐구 질문으로 바꾸는 연결 지도</h1>
+          <p>이 영역의 목적은 과목명 안내가 아니라 “어느 수업 개념에서 출발해 어떤 방법으로 탐구할 것인가”를 결정하도록 돕는 것입니다.</p>
+        </div>
+      </div>
+
       <div className="explore-grid">
-        {currentCards.map((card, idx) => (
+        {currentMapCards.map((card, idx) => (
           <div key={idx} className="map-card">
             <span className="card-tag">{card.title}</span>
             <h3 className="card-subtitle">{card.subtitle}</h3>
