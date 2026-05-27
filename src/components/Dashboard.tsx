@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Bell, UserPlus, ArrowRight, BookOpen, Clock, X, Save } from 'lucide-react';
+import { Search, Bell, UserPlus, ArrowRight, BookOpen, Clock, X, Save, Edit3, FileText } from 'lucide-react';
 import { pb } from '../lib/pocketbase';
 import { resolveOrCreateProfile } from '../lib/profileLink';
 import './Dashboard.css';
@@ -161,9 +161,14 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectStudent }) => {
                         </div>
                       </td>
                       <td>
-                        <button className="action-btn primary-action" onClick={() => onSelectStudent(student.id, student.name)}>
-                          <span>학생부 분석 시작</span><ArrowRight size={16} />
-                        </button>
+                        <div className="action-buttons-group">
+                          <button className="action-btn secondary-action" onClick={() => onSelectStudent(student.id, student.name)}>
+                            <Edit3 size={16} /><span>학업정보 추가</span>
+                          </button>
+                          <button className="action-btn primary-action" onClick={() => onSelectStudent(student.id, student.name)}>
+                            <FileText size={16} /><span>학생부 분석/등록</span><ArrowRight size={14} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))

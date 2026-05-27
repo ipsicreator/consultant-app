@@ -242,6 +242,11 @@
 }
 .status-badge.neutral::before { background: #94a3b8; }
 
+.action-buttons-group {
+  display: flex;
+  gap: 8px;
+}
+
 .action-btn {
   background: rgba(56, 189, 248, 0.05);
   border: 1px solid rgba(56, 189, 248, 0.1);
@@ -251,15 +256,28 @@
   gap: 8px;
   cursor: pointer;
   font-weight: 600;
-  padding: 10px 18px;
-  border-radius: 12px;
+  padding: 8px 14px;
+  border-radius: 10px;
   transition: var(--trans-fast);
+  font-size: 0.85rem;
 }
 
 .action-btn:hover {
   background: rgba(56, 189, 248, 0.15);
   border-color: var(--accent);
-  transform: translateX(4px);
+  transform: translateY(-2px);
+}
+
+.action-btn.secondary-action {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+}
+
+.action-btn.secondary-action:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
 }
 
 .action-btn.primary-action {
@@ -270,7 +288,7 @@
 }
 
 .action-btn.primary-action:hover {
-  transform: translateX(4px);
+  transform: translateY(-2px);
   box-shadow: 0 6px 16px var(--primary-glow);
 }
 
