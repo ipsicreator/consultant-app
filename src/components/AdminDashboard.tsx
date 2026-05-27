@@ -6,17 +6,27 @@ import {
   Settings,
   Mail,
   MoreVertical,
-  Search
+  Search,
+  Save,
+  Map
 } from 'lucide-react';
 import { pb } from '../lib/pocketbase';
+import { DEFAULT_CATEGORY_MAP, SUBJECTS, GLOBAL_MAP_ID } from '../lib/explorationConfig';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
   const [staff, setStaff] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Exploration Map Editor State
+  const [mapData, setMapData] = useState<Record<string, { title: string; subtitle: string; desc: string }[]>>({});
+  const [activeSubject, setActiveSubject] = useState('과학');
+  const [isSaving, setIsSaving] = useState(false);
+  const [recordId, setRecordId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchStaff();
+    fetchMapData();
   }, []);
 
   const fetchStaff = async () => {
@@ -29,6 +39,60 @@ const AdminDashboard = () => {
       setLoading(false);
     }
   };
+
+  const fetchMapData = async () => {
+    try {
+      const records = await pb.collection('suprima_pdf_analyses').getList(1, 1, {
+        filter: `student_id="${GLOBAL_MAP_ID}"`
+      });
+      if (records.items.length > 0) {
+        setRecordId(records.items[0].id);
+        const savedMap = records.items[0].content as Record<string, any>;
+        setMapData({ ...DEFAULT_CATEGORY_MAP, ...savedMap });
+      } else {
+        setMapData({ ...DEFAULT_CATEGORY_MAP });
+      }
+    } catch (err) {
+      console.error('Map fetch error:', err);
+      setMapData({ ...DEFAULT_CATEGORY_MAP });
+    }
+  };
+
+  const saveMapData = async () => {
+    setIsSaving(true);
+    try {
+      if (recordId) {
+        await pb.collection('suprima_pdf_analyses').update(recordId, {
+          content: mapData
+        });
+      } else {
+        const record = await pb.collection('suprima_pdf_analyses').create({
+          student_id: GLOBAL_MAP_ID,
+          content: mapData
+        });
+        setRecordId(record.id);
+      }
+      alert('탐구 맵핑 카드가 성공적으로 저장되어 전체 화면에 반영되었습니다.');
+    } catch (err) {
+      console.error('Map save error:', err);
+      alert('저장에 실패했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCardChange = (idx: number, field: 'title' | 'subtitle' | 'desc', value: string) => {
+    setMapData(prev => {
+      const newData = { ...prev };
+      if (!newData[activeSubject]) {
+        newData[activeSubject] = DEFAULT_CATEGORY_MAP['과학'].map(c => ({...c, title: c.title, subtitle: '', desc: ''}));
+      }
+      newData[activeSubject][idx] = { ...newData[activeSubject][idx], [field]: value };
+      return newData;
+    });
+  };
+
+  const currentCards = mapData[activeSubject] || DEFAULT_CATEGORY_MAP['과학'].map(c => ({...c, subtitle: '', desc: ''}));
 
   return (
     <div className="admin-dashboard fade-in">
@@ -91,11 +155,65 @@ const AdminDashboard = () => {
 
         <section className="admin-stats glass-panel">
           <div className="section-title">
-            <Settings size={20} />
-            <h3>학원 운영 통계</h3>
+            <div className="title-left">
+              <Map size={20} />
+              <h3>탐구 맵핑 카드 대표 샘플 관리 (마스터)</h3>
+            </div>
+            <button className="btn-primary" onClick={saveMapData} disabled={isSaving} style={{ padding: '6px 12px', fontSize: '0.9rem' }}>
+              <Save size={16} /> {isSaving ? '저장 중...' : '전체 저장 (배포)'}
+            </button>
           </div>
-          <div className="stats-placeholder">
-            <p>준비 중인 기능입니다.</p>
+          
+          <div className="map-editor-section">
+            <div className="subject-tabs-admin">
+              {SUBJECTS.map(sub => (
+                <button 
+                  key={sub} 
+                  className={`admin-sub-tab ${activeSubject === sub ? 'active' : ''}`}
+                  onClick={() => setActiveSubject(sub)}
+                >
+                  {sub}
+                </button>
+              ))}
+            </div>
+
+            <p className="editor-hint">
+              <strong>{activeSubject}</strong> 과목의 탐구 맵핑 카드(6개 영역)에 노출될 샘플을 수정합니다. 저장 시 모든 컨설턴트의 <strong>[탐구활동 제안]</strong> 탭에 즉시 반영됩니다.
+            </p>
+
+            <div className="map-editor-grid">
+              {currentCards.map((card, idx) => (
+                <div key={idx} className="map-editor-card">
+                  <div className="card-header-admin">
+                    <span className="idx-badge">{idx + 1}</span>
+                    <input 
+                      type="text" 
+                      className="edit-title" 
+                      value={card.title} 
+                      onChange={(e) => handleCardChange(idx, 'title', e.target.value)}
+                      placeholder="분류 (예: 기초)"
+                    />
+                  </div>
+                  <div className="card-body-admin">
+                    <label>대표 과목/주제</label>
+                    <input 
+                      type="text" 
+                      className="edit-subtitle" 
+                      value={card.subtitle} 
+                      onChange={(e) => handleCardChange(idx, 'subtitle', e.target.value)}
+                      placeholder="예: 통합과학1·2"
+                    />
+                    <label>상세 설명 (탐구 관점)</label>
+                    <textarea 
+                      className="edit-desc" 
+                      value={card.desc} 
+                      onChange={(e) => handleCardChange(idx, 'desc', e.target.value)}
+                      placeholder="이 영역의 목적과 탐구 방향성을 설명해주세요."
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       </div>

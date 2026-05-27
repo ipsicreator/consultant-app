@@ -1,6 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Lightbulb, BookOpen, Sparkles, Send, RefreshCw, ChevronRight, X, ArrowLeft } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { pb } from '../lib/pocketbase';
+import { DEFAULT_CATEGORY_MAP, SUBJECTS, GLOBAL_MAP_ID } from '../lib/explorationConfig';
 import './ExplorationModule.css';
 
 interface ExplorationModuleProps {
@@ -14,20 +16,6 @@ type Suggestion = {
   reading: { bookTitle: string; reason: string };
   activitySteps: string[];
   output: string;
-};
-
-const SUBJECTS = ['국어', '수학', '영어', '사회', '과학', '한국사', '정보'];
-
-// Dummy data mirroring the image structure for '과학' (as a representative sample)
-const CATEGORY_MAP: Record<string, { title: string; desc: string; subtitle: string }[]> = {
-  '과학': [
-    { title: '기초', subtitle: '통합과학1·2 / 과학탐구실험1·2', desc: '관찰·측정·비교·분류·변인 통제의 기본기를 만드는 단계입니다. 1학년 탐구는 거창한 전공명보다 "정확히 재고, 공정하게 비교하고, 그래프로 설명하는 능력"을 우선합니다.' },
-    { title: '개념', subtitle: '물리학·화학·생명과학·지구과학', desc: '운동, 에너지, 반응, 물질대사, 유전, 지구시스템 등 핵심 개념을 실제 현상에 적용합니다. 2학년 탐구는 이론식·반응식·모형·자료 해석을 함께 사용하도록 설계합니다.' },
-    { title: '심화', subtitle: '진로 선택 과목', desc: '역학과 에너지, 전자기와 양자, 물질과 에너지, 화학 반응의 세계, 세포와 물질대사, 생물의 유전, 지구시스템 과학, 행성우주과학을 전공 관심의 언어로 연결합니다.' },
-    { title: '융합', subtitle: '기후 변화와 환경생태 / 융합과학 탐구', desc: '실생활 문제, 사회적 쟁점, 기술 적용 가능성을 다룹니다. 단, 주장형 보고서가 되지 않도록 수치 자료, 기준표, 다중 기준 평가를 반드시 포함합니다.' },
-    { title: '연구', subtitle: '과학계열 심화·실험 과목', desc: '고급 물리학, 고급 화학, 고급 생명과학, 고급 지구과학, 과학과제연구, 물리학·화학·생명과학·지구과학 실험은 학교 개설 여건에 맞춰 연구형 심화로 확장합니다.' },
-    { title: '도구', subtitle: '수학·정보와의 연결', desc: '공통수학, 대수, 미적분, 확률과 통계, 기하, 인공지능 수학, 정보는 탐구 결과를 설명하는 도구입니다. 회귀, 상관, 시뮬레이션, 알고리즘 비교가 세특의 깊이를 만듭니다.' }
-  ]
 };
 
 const FLOW_STEPS = [
@@ -73,6 +61,7 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
   const initialKeywords = JSON.parse(sessionStorage.getItem('exploration_keywords') || '{}');
   
   const [activeSubject, setActiveSubject] = useState('과학');
+  const [mapData, setMapData] = useState<Record<string, { title: string; subtitle: string; desc: string }[]>>(DEFAULT_CATEGORY_MAP);
   
   const [studentKeyword1, setStudentKeyword1] = useState(initialKeywords.student?.[0] || '');
   const [studentKeyword2, setStudentKeyword2] = useState(initialKeywords.student?.[1] || '');
@@ -86,6 +75,23 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
 
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
   const genAI = useMemo(() => new GoogleGenerativeAI(apiKey), [apiKey]);
+
+  useEffect(() => {
+    const fetchGlobalMap = async () => {
+      try {
+        const records = await pb.collection('suprima_pdf_analyses').getList(1, 1, {
+          filter: `student_id="${GLOBAL_MAP_ID}"`
+        });
+        if (records.items.length > 0) {
+          const savedMap = records.items[0].content as Record<string, any>;
+          setMapData({ ...DEFAULT_CATEGORY_MAP, ...savedMap });
+        }
+      } catch (err) {
+        console.error('Global map fetch error:', err);
+      }
+    };
+    fetchGlobalMap();
+  }, []);
 
   const generate = async () => {
     const sKeys = [studentKeyword1, studentKeyword2, studentKeyword3].filter(k => k.trim());
@@ -144,7 +150,7 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
     }
   };
 
-  const currentCards = CATEGORY_MAP[activeSubject] || CATEGORY_MAP['과학']; // Fallback to 과학 for demo
+  const currentCards = mapData[activeSubject] || DEFAULT_CATEGORY_MAP['과학']; // Fallback to 과학 for demo
 
   return (
     <div className="explore-wrap fade-in">

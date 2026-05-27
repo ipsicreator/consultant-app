@@ -40,11 +40,20 @@ const StudentDetail: React.FC<StudentDetailProps> = ({ studentData, onBack }) =>
   const [isSaving, setIsSaving] = useState(false);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   
-  // Input fields
+  // Input fields (initialized from localStorage if available)
   const [inputText, setInputText] = useState('');
   const [hopeMajor, setHopeMajor] = useState('');
   const [gpa, setGpa] = useState('');
   const [activities, setActivities] = useState('');
+
+  useEffect(() => {
+    if (studentData?.id) {
+      const savedInfo = JSON.parse(localStorage.getItem(`student_info_${studentData.id}`) || '{}');
+      if (savedInfo.hopeMajor) setHopeMajor(savedInfo.hopeMajor);
+      if (savedInfo.gpa) setGpa(savedInfo.gpa);
+      if (savedInfo.activities) setActivities(savedInfo.activities);
+    }
+  }, [studentData?.id]);
   
   // Results
   const [result, setResult] = useState<Analysis | null>(null);
