@@ -4,16 +4,12 @@ import {
 } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { pb } from '../lib/pocketbase';
-import * as pdfjsLib from 'pdfjs-dist';
+import { fileToGenerativePart } from '../lib/gemini';
 import './StudentDetail.css';
-
-// Configure pdf.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface StudentDetailProps {
   studentData: { id: string; name: string } | null;
   onBack: () => void;
-  onNavigateExploration?: () => void; // Optional if we want to navigate from here directly, but wait, the App.tsx handles navigation.
 }
 
 type Analysis = {
@@ -83,21 +79,23 @@ const StudentDetail: React.FC<StudentDetailProps> = ({ studentData, onBack }) =>
     
     setIsPdfLoading(true);
     try {
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      let extractedText = '';
-      
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
-        const pageText = textContent.items.map((item: any) => item.str).join(' ');
-        extractedText += pageText + '\\n';
+      if (!geminiKey) {
+        throw new Error("API 키가 없습니다.");
       }
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const filePart = await fileToGenerativePart(file);
       
-      setInputText(prev => prev + (prev ? '\\n\\n' : '') + extractedText);
+      const prompt = `이 PDF 문서는 학생의 학교생활기록부(또는 성적, 활동 기록) 문서 파일입니다.
+이 문서 안에 적혀 있는 '교과학습발달상황(세부능력 및 특기사항 포함)', '창의적 체험활동상황(자율/동아리/진로)', '행동특성 및 종합의견' 등의 모든 텍스트를 빠짐없이 추출하여 반환해 주세요.
+PDF의 양식이나 표는 무시하고, 내용(글) 자체만 모두 이어서 출력하면 됩니다.`;
+
+      const result = await model.generateContent([prompt, filePart]);
+      const extractedText = result.response.text();
+      
+      setInputText(prev => prev + (prev ? '\n\n' : '') + extractedText.trim());
     } catch (error) {
       console.error('PDF extraction error:', error);
-      alert('PDF 텍스트 추출에 실패했습니다. 올바른 텍스트 기반 PDF인지 확인해 주세요.');
+      alert('AI PDF 텍스트 추출에 실패했습니다. 암호가 걸려있지 않은지 확인해 주세요.');
     } finally {
       setIsPdfLoading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -143,7 +141,7 @@ const StudentDetail: React.FC<StudentDetailProps> = ({ studentData, onBack }) =>
 }`;
       const gen = await model.generateContent(prompt);
       const text = (await gen.response).text().replace(/```json|```/g, '').trim();
-      const parsed = JSON.parse(text.match(/\\{[\\s\\S]*\\}/)?.[0] || text);
+      const parsed = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] || text);
 
       setResult({
         summary: parsed.summary || fallbackAnalysis(inputText).summary,
@@ -240,9 +238,9 @@ const StudentDetail: React.FC<StudentDetailProps> = ({ studentData, onBack }) =>
               <input type="file" accept="application/pdf" ref={fileInputRef} onChange={handlePdfUpload} style={{ display: 'none' }} />
               <button className="btn-secondary" onClick={() => fileInputRef.current?.click()} disabled={isPdfLoading}>
                 {isPdfLoading ? <RefreshCw className="spin" size={16} /> : <Upload size={16} />}
-                <span>{isPdfLoading ? 'PDF 추출 중...' : '학생부 PDF 업로드 (자동 텍스트 추출)'}</span>
+                <span>{isPdfLoading ? 'AI PDF 텍스트 추출 중...' : '학생부 PDF 업로드 (AI 텍스트 스캔)'}</span>
               </button>
-              <span className="upload-hint">NEIS 학생부 PDF 파일을 업로드하면 텍스트가 자동 추출됩니다.</span>
+              <span className="upload-hint">NEIS 학생부 PDF 파일을 업로드하면 AI(Gemini)가 텍스트를 정밀하게 추출합니다.</span>
             </div>
             
             <textarea
