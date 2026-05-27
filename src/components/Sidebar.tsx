@@ -56,7 +56,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
             <img src="/logo.png" alt="수프리마 플랫폼" className="brand-logo" />
           )}
         </div>
-        {!isCollapsed && <p className="subtitle" style={{ textAlign: 'center', width: '100%', display: 'block' }}>교과·탐구 세특 코칭 플랫폼</p>}
+        {!isCollapsed && <p className="subtitle" style={{ textAlign: 'center', width: '100%', display: 'block' }}>교과 탐구 • 세특 코칭 플랫폼</p>}
         <button className="collapse-btn" onClick={() => setIsCollapsed(!isCollapsed)}>
           {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
