@@ -11,7 +11,7 @@
 .header-tabs button { border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:8px 12px; background:rgba(255,255,255,.03); color:var(--text-muted); display:inline-flex; align-items:center; gap:6px; cursor:pointer; }
 .header-tabs button.active { color:#fff; border-color: var(--accent); }
 
-.detail-grid { flex:1; min-height:0; display:grid; grid-template-columns: 420px 1fr; gap:14px; }
+.detail-grid { flex:1; min-height:0; display:grid; grid-template-columns: 1fr 1fr; gap:20px; }
 .scan-section, .history-section, .report-section { padding: 20px; overflow:auto; }
 .section-title { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
 .section-title h3 { margin:0; }
