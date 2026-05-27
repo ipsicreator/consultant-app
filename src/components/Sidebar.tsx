@@ -7,6 +7,7 @@ import {
   Building,
   Calendar,
   Lightbulb,
+  BookOpen,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -79,6 +80,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
                 <span className="badge">New</span>
               </>
             )}
+          </li>
+          <li className={currentView === 'inquiry_guide' ? 'active' : ''} onClick={() => onNavigate('inquiry_guide')}>
+            <BookOpen size={20} />
+            {!isCollapsed && <span>심화 탐구 가이드</span>}
           </li>
           <li className={currentView === 'planner' ? 'active' : ''} onClick={() => onNavigate('planner')}>
             <Calendar size={20} />

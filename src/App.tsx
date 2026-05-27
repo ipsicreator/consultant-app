@@ -1,8 +1,9 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import StudentDetail from './components/StudentDetail';
 import ExplorationModule from './components/ExplorationModule';
+import InquiryGuide from './components/InquiryGuide';
 import AdminDashboard from './components/AdminDashboard';
 import MonthlyPlanner from './components/MonthlyPlanner';
 import Settings from './components/Settings';
@@ -12,7 +13,7 @@ import { pb } from './lib/pocketbase';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(!!pb.authStore.model);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'student' | 'exploration' | 'admin' | 'planner' | 'settings'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'student' | 'exploration' | 'inquiry_guide' | 'admin' | 'planner' | 'settings'>('dashboard');
   const [selectedStudent, setSelectedStudent] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
@@ -49,6 +50,7 @@ function App() {
           {currentView === 'exploration' && (
             <ExplorationModule onBack={() => setCurrentView('dashboard')} studentData={selectedStudent} />
           )}
+          {currentView === 'inquiry_guide' && <InquiryGuide />}
           {currentView === 'admin' && <AdminDashboard />}
           {currentView === 'planner' && <MonthlyPlanner />}
           {currentView === 'settings' && <Settings />}
