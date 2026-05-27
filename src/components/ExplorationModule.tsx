@@ -1,8 +1,7 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { Lightbulb, BookOpen, Sparkles, Send, RefreshCw, ChevronRight, X, ArrowLeft } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Lightbulb, BookOpen, Sparkles, Send, RefreshCw, X, ArrowLeft, Calendar } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { pb } from '../lib/pocketbase';
-import { DEFAULT_CATEGORY_MAP, SUBJECTS, GLOBAL_MAP_ID, SUBJECT_SAMPLES } from '../lib/explorationConfig';
+import { SUBJECTS, SUBJECT_SAMPLES } from '../lib/explorationConfig';
 import './ExplorationModule.css';
 
 interface ExplorationModuleProps {
@@ -17,14 +16,6 @@ type Suggestion = {
   activitySteps: string[];
   output: string;
 };
-
-const FLOW_STEPS = [
-  { no: 1, title: '개념 선택', desc: '수업에서 이해가 흔들린 개념 또는 실험 장면을 고른다.' },
-  { no: 2, title: '질문 변환', desc: '"왜?"를 "무엇을 바꾸면 어떤 값이 달라지는가?"로 바꾼다.' },
-  { no: 3, title: '자료 설계', desc: '직접 측정, 공개 데이터, 모형 실험 중 하나를 선택한다.' },
-  { no: 4, title: '분석 도구', desc: '그래프, 통계, 시뮬레이션, 모델 비교 중 하나를 적용한다.' },
-  { no: 5, title: '기록 증거', desc: '오차·수정·후속 질문을 세특과 면접 언어로 정리한다.' }
-];
 
 const fallbackSuggestions = (a: string, b: string, c: string, d: string): Suggestion[] => [
   {
@@ -58,14 +49,21 @@ const fallbackSuggestions = (a: string, b: string, c: string, d: string): Sugges
 ];
 
 const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBack }) => {
-  const initialKeywords = JSON.parse(sessionStorage.getItem('exploration_keywords') || '{}');
+  const getInitialKeywords = () => {
+    try {
+      const stored = sessionStorage.getItem('exploration_keywords');
+      return stored && stored !== 'undefined' ? JSON.parse(stored) : {};
+    } catch (e) {
+      return {};
+    }
+  };
+  const initialKeywords = getInitialKeywords();
   
   // Admin Map Tabs State
   const [activeSubject, setActiveSubject] = useState('과학');
-  const [mapData, setMapData] = useState<Record<string, { title: string; subtitle: string; desc: string }[]>>(DEFAULT_CATEGORY_MAP);
   
   // Generator Form State
-  const [genSubject, setGenSubject] = useState('국수영');
+  const [genSubject, setGenSubject] = useState('국어');
   const [genGrade, setGenGrade] = useState('1학년');
   
   const [studentKeyword1, setStudentKeyword1] = useState(initialKeywords.student?.[0] || '');
@@ -80,23 +78,6 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
 
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
   const genAI = useMemo(() => new GoogleGenerativeAI(apiKey), [apiKey]);
-
-  useEffect(() => {
-    const fetchGlobalMap = async () => {
-      try {
-        const records = await pb.collection('suprima_pdf_analyses').getList(1, 1, {
-          filter: `student_id="${GLOBAL_MAP_ID}"`
-        });
-        if (records.items.length > 0) {
-          const savedMap = records.items[0].content as Record<string, any>;
-          setMapData({ ...DEFAULT_CATEGORY_MAP, ...savedMap });
-        }
-      } catch (err) {
-        console.error('Global map fetch error:', err);
-      }
-    };
-    fetchGlobalMap();
-  }, []);
 
   const generate = async () => {
     const sKeys = [studentKeyword1, studentKeyword2, studentKeyword3].filter(k => k.trim());
@@ -160,7 +141,6 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
     }
   };
 
-  const currentMapCards = mapData[activeSubject] || DEFAULT_CATEGORY_MAP['과학'];
   const currentSampleTopics = SUBJECT_SAMPLES[activeSubject] || SUBJECT_SAMPLES['과학'];
 
   return (
@@ -199,38 +179,9 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
         </div>
       </div>
 
-      {/* 3. Reference Map & Flow (Bottom Layer) */}
-      <div className="explore-header" style={{ marginTop: '30px' }}>
-        <div className="explore-title">
-          <h1>교과 개념을 탐구 질문으로 바꾸는 연결 지도</h1>
-          <p>이 영역의 목적은 과목명 안내가 아니라 “어느 수업 개념에서 출발해 어떤 방법으로 탐구할 것인가”를 결정하도록 돕는 것입니다.</p>
-        </div>
-      </div>
 
-      <div className="explore-grid">
-        {currentMapCards.map((card, idx) => (
-          <div key={idx} className="map-card">
-            <span className="card-tag">{card.title}</span>
-            <h3 className="card-subtitle">{card.subtitle}</h3>
-            <p className="card-desc">{card.desc}</p>
-          </div>
-        ))}
-      </div>
 
-      {/* 4. Flow Diagram */}
-      <div className="explore-flow">
-        {FLOW_STEPS.map((step, idx) => (
-          <React.Fragment key={step.no}>
-            <div className="flow-step">
-              <span className="step-no">{step.no}. {step.title}</span>
-              <p className="step-desc">{step.desc}</p>
-            </div>
-            {idx < FLOW_STEPS.length - 1 && <ChevronRight className="flow-arrow" size={24} />}
-          </React.Fragment>
-        ))}
-      </div>
-
-      {/* 4. Input Section (Moved to Bottom) */}
+      {/* 3. Input Section (Generator) */}
       <section className="explore-input-section bottom-generator">
         <div className="input-header">
           <p className="generator-hint">교과, 학년 및 추출된 키워드를 기반으로 4~5개의 완벽한 심화 탐구 주제를 뽑아냅니다.</p>
@@ -240,8 +191,10 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
           <div className="filter-group">
             <label>교과군</label>
             <select value={genSubject} onChange={(e) => setGenSubject(e.target.value)}>
-              <option value="국수영">국수영</option>
-              <option value="사회탐구(한국사포함)">사회탐구 (한국사포함)</option>
+              <option value="국어">국어</option>
+              <option value="영어">영어</option>
+              <option value="수학">수학</option>
+              <option value="사회탐구">사회탐구</option>
               <option value="과학탐구">과학탐구</option>
               <option value="정보">정보</option>
             </select>
@@ -293,7 +246,7 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
 
             <div className="result-modal-body">
               <div className="result-grid">
-                {result.map((s, i) => (
+                {result.map((s: Suggestion, i: number) => (
                   <article key={i} className="result-card">
                     <div className="rcard-header">
                       <span className="rcard-badge">제안 {i + 1}</span>
@@ -313,13 +266,25 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
                       <div className="rcard-steps">
                         <strong>탐구 진행 단계</strong>
                         <ol>
-                          {(s.activitySteps || []).map((st, idx) => <li key={idx}>{st}</li>)}
+                          {(s.activitySteps || []).map((st: string, idx: number) => <li key={idx}>{st}</li>)}
                         </ol>
                       </div>
 
                       <div className="rcard-output">
                         <strong>최종 산출물:</strong> {s.output}
                       </div>
+
+                      <button 
+                        className="btn-primary" 
+                        style={{ marginTop: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                        onClick={() => {
+                          window.dispatchEvent(new CustomEvent('TRANSFER_TO_PLANNER', { detail: { title: s.title } }));
+                          window.dispatchEvent(new CustomEvent('NAVIGATE_TO', { detail: 'planner' }));
+                        }}
+                      >
+                        <Calendar size={18} />
+                        이 주제를 플래너로 즉시 전송하기
+                      </button>
                     </div>
                   </article>
                 ))}
@@ -328,6 +293,15 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
           </div>
         </div>
       )}
+      {/* Floating Button to Inquiry Guide */}
+      <button 
+        className="floating-guide-btn fade-in"
+        onClick={() => window.dispatchEvent(new CustomEvent('NAVIGATE_TO', { detail: 'inquiry_guide' }))}
+        title="심화탐구 가이드(연결지도)로 이동"
+      >
+        <BookOpen size={24} />
+        <span>심화탐구 연결지도 펼치기</span>
+      </button>
     </div>
   );
 };

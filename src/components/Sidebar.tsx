@@ -56,7 +56,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
             <img src="/logo.png" alt="수프리마 플랫폼" className="brand-logo" />
           )}
         </div>
-        {!isCollapsed && <p className="subtitle">교과 세특 코칭 플랫폼</p>}
+        {!isCollapsed && <p className="subtitle" style={{ textAlign: 'center', width: '100%', display: 'block' }}>교과·탐구 세특 코칭 플랫폼</p>}
         <button className="collapse-btn" onClick={() => setIsCollapsed(!isCollapsed)}>
           {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
@@ -70,34 +70,29 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
           </li>
           <li className={currentView === 'student' ? 'active' : ''} onClick={() => onNavigate('student')}>
             <FileText size={20} />
-            {!isCollapsed && <span>학생부 분석</span>}
+            {!isCollapsed && <span>학생부/성적분석</span>}
           </li>
           <li className={currentView === 'exploration' ? 'active' : ''} onClick={() => onNavigate('exploration')}>
             <Lightbulb size={20} />
-            {!isCollapsed && (
-              <>
-                <span>탐구활동 제안</span>
-                <span className="badge">New</span>
-              </>
-            )}
+            {!isCollapsed && <span>주제탐구활동</span>}
           </li>
           <li className={currentView === 'inquiry_guide' ? 'active' : ''} onClick={() => onNavigate('inquiry_guide')}>
             <BookOpen size={20} />
-            {!isCollapsed && <span>심화 탐구 가이드</span>}
+            {!isCollapsed && <span>심화탐구가이드</span>}
           </li>
           <li className={currentView === 'planner' ? 'active' : ''} onClick={() => onNavigate('planner')}>
             <Calendar size={20} />
-            {!isCollapsed && <span>학습/입시 플래너</span>}
-          </li>
-          <li className={currentView === 'admin' ? 'active' : ''} onClick={() => onNavigate('admin')}>
-            <Building size={20} />
-            {!isCollapsed && <span>관리자 배정 관리</span>}
+            {!isCollapsed && <span>학습/입시 설계</span>}
           </li>
         </ul>
       </nav>
 
       <div className="sidebar-footer">
         <ul>
+          <li className={currentView === 'admin' ? 'active' : ''} onClick={() => onNavigate('admin')}>
+            <Building size={20} />
+            {!isCollapsed && <span>관리자 배정 관리</span>}
+          </li>
           <li className={currentView === 'settings' ? 'active' : ''} onClick={() => onNavigate('settings')}>
             <Settings size={20} />
             {!isCollapsed && <span>환경 설정</span>}

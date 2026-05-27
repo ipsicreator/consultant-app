@@ -1,30 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Printer, 
   FileText, 
   TrendingUp, 
-  Award, 
-  User, 
+  Target,
   Calendar,
   CheckCircle2,
-  Sparkles
+  Clock,
+  Plus,
+  Trash2,
+  Upload,
+  ArrowRight,
+  BarChart2,
+  MessageSquare,
+  Circle
 } from 'lucide-react';
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer 
-} from 'recharts';
 import { pb } from '../lib/pocketbase';
 import './MonthlyPlanner.css';
+
+type TaskStatus = 'todo' | 'in_progress' | 'done';
+
+interface Task {
+  id: string;
+  text: string;
+  status: TaskStatus;
+  week: number;
+  fileName?: string;
+}
 
 const MonthlyPlanner: React.FC = () => {
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [students, setStudents] = useState<any[]>([]);
   const [consultantNote, setConsultantNote] = useState('');
+  
+  // Kanban Tasks
+  const [tasks, setTasks] = useState<Task[]>([
+    { id: '1', text: '기후 변화 모델링 추천 도서 완독', status: 'done', week: 1 },
+    { id: '2', text: '희망 전공 관련 시사 뉴스 3개 요약', status: 'in_progress', week: 1 },
+    { id: '3', text: '실험 설계안 1차 기획안 제출', status: 'todo', week: 2 },
+  ]);
+  
+  const [newTaskText, setNewTaskText] = useState('');
+  const [uploadModalTask, setUploadModalTask] = useState<string | null>(null);
 
   const fetchStudents = async () => {
     try {
@@ -37,32 +53,113 @@ const MonthlyPlanner: React.FC = () => {
 
   useEffect(() => {
     fetchStudents();
+    
+    // Listen for instant transfers from ExplorationModule
+    const handleTransfer = (e: any) => {
+      if (e.detail && e.detail.title) {
+        setTasks(prev => [...prev, {
+          id: Date.now().toString() + Math.random().toString(),
+          text: `[탐구활동] ${e.detail.title}`,
+          status: 'todo',
+          week: 1
+        }]);
+      }
+    };
+    window.addEventListener('TRANSFER_TO_PLANNER', handleTransfer);
+    return () => window.removeEventListener('TRANSFER_TO_PLANNER', handleTransfer);
   }, []);
 
-  const loadReport = async (student: any) => {
+  const loadReport = (student: any) => {
     setSelectedStudent(student);
-    try {
-      // 데이터 로드 확인용 로직
-      await pb.collection('suprima_pdf_analyses').getFirstListItem(`student_id="${student.id}"`, {
-        sort: '-created',
-      });
-    } catch (error) {
-      console.error("Load report error:", error);
+  };
+
+  const addTask = () => {
+    if (!newTaskText.trim()) return;
+    setTasks([...tasks, { id: Date.now().toString(), text: newTaskText, status: 'todo', week: 1 }]);
+    setNewTaskText('');
+  };
+
+  const removeTask = (id: string) => {
+    setTasks(tasks.filter(t => t.id !== id));
+  };
+
+  const moveTask = (id: string, newStatus: TaskStatus) => {
+    setTasks(tasks.map(t => t.id === id ? { ...t, status: newStatus } : t));
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, taskId: string) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Simulate file upload delay
+      setTimeout(() => {
+        setTasks(tasks.map(t => t.id === taskId ? { ...t, fileName: file.name } : t));
+        setUploadModalTask(null);
+        alert(`${file.name} 결과물이 ${selectedStudent?.name || '학생'}에게 매칭되어 누적(업로드)되었습니다!`);
+      }, 500);
     }
   };
 
-  const handlePrint = () => {
-    window.print();
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter(t => t.status === 'done').length;
+  const progressPercent = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
+
+  const renderKanbanColumn = (status: TaskStatus, title: string, icon: React.ReactNode) => {
+    const colTasks = tasks.filter(t => t.status === status);
+    return (
+      <div className={`kanban-col ${status}`}>
+        <div className="col-header">
+          {icon}
+          <h4>{title}</h4>
+          <span className="col-count">{colTasks.length}</span>
+        </div>
+        <div className="kanban-cards">
+          {colTasks.map(task => (
+            <div key={task.id} className="kanban-card">
+              <div className="k-card-header">
+                <span className="k-week">{task.week}주차</span>
+                <button className="icon-btn delete-btn" onClick={() => removeTask(task.id)}><Trash2 size={14}/></button>
+              </div>
+              <p className="k-text">{task.text}</p>
+              
+              {task.fileName && (
+                <div className="uploaded-file-badge">
+                  <FileText size={14} /> {task.fileName}
+                </div>
+              )}
+
+              <div className="k-actions">
+                {status === 'todo' && (
+                  <button className="k-move-btn" onClick={() => moveTask(task.id, 'in_progress')}>
+                    진행중으로 이동 <ArrowRight size={14} />
+                  </button>
+                )}
+                {status === 'in_progress' && (
+                  <button className="k-move-btn success" onClick={() => moveTask(task.id, 'done')}>
+                    완료 처리 <CheckCircle2 size={14} />
+                  </button>
+                )}
+                {status === 'done' && !task.fileName && (
+                  <button className="k-move-btn upload" onClick={() => setUploadModalTask(task.id)}>
+                    결과물 업로드 <Upload size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+          {colTasks.length === 0 && <div className="empty-col">항목이 없습니다</div>}
+        </div>
+      </div>
+    );
   };
 
   return (
     <div className="monthly-planner fade-in">
-      <header className="planner-header glass-panel no-print">
+      <header className="planner-header glass-panel">
         <div className="header-left">
-          <FileText size={24} className="accent-color" />
+          <Calendar size={24} className="accent-color" />
           <div className="title-area">
-            <h2>입시 진단 및 전략 리포트</h2>
-            <p>학생의 데이터를 기반으로 공식 분석 보고서를 생성합니다.</p>
+            <h2>칸반형 학습 및 입시 플래너</h2>
+            <p>과제를 상태별(할 일-진행중-완료)로 관리하고 산출물을 학생에게 누적합니다.</p>
           </div>
         </div>
         <div className="header-actions">
@@ -70,6 +167,7 @@ const MonthlyPlanner: React.FC = () => {
             onChange={(e) => {
               const student = students.find(s => s.id === e.target.value);
               if (student) loadReport(student);
+              else setSelectedStudent(null);
             }}
             className="student-select"
           >
@@ -78,126 +176,137 @@ const MonthlyPlanner: React.FC = () => {
               <option key={s.id} value={s.id}>{s.name} ({s.school})</option>
             ))}
           </select>
-          <button className="btn-primary" onClick={handlePrint} disabled={!selectedStudent}>
-            <Printer size={18} />
-            <span>리포트 인쇄하기</span>
-          </button>
         </div>
       </header>
 
       {selectedStudent ? (
-        <div className="report-container glass-panel">
-          <div className="report-paper">
-            <header className="report-official-header">
-              <div className="brand-box">
-                <h1>교과 탐구 세특 전문가</h1>
-                <p>EDUCATION GROUP</p>
-              </div>
-              <div className="report-meta">
-                <div className="meta-item">
-                  <span className="label">발행일자</span>
-                  <span className="value">{new Date().toLocaleDateString()}</span>
-                </div>
-                <div className="meta-item">
-                  <span className="label">보고서 번호</span>
-                  <span className="value">SR-{selectedStudent.id.slice(0, 8).toUpperCase()}</span>
-                </div>
-              </div>
-            </header>
-
-            <div className="report-title-section">
-              <h2>학교생활기록부 종합 진단 및 대학 입시 전략 보고서</h2>
-              <div className="student-info-grid">
-                <div className="info-item">
-                  <User size={14} />
-                  <strong>학생 성명:</strong> <span>{selectedStudent.name}</span>
-                </div>
-                <div className="info-item">
-                  <Calendar size={14} />
-                  <strong>학교/학년:</strong> <span>{selectedStudent.school} {selectedStudent.grade}</span>
-                </div>
-                <div className="info-item">
-                  <Award size={14} />
-                  <strong>희망 전공:</strong> <span>{selectedStudent.target_major || '미설정'}</span>
-                </div>
+        <div className="planner-content">
+          <section className="planner-dashboard glass-panel fade-in">
+            <div className="dash-card">
+              <div className="dash-icon"><Clock size={24} color="#0ea5e9" /></div>
+              <div className="dash-info">
+                <span>다가오는 주요 일정</span>
+                <h3>1학기 기말고사 D-15</h3>
               </div>
             </div>
+            <div className="dash-card">
+              <div className="dash-icon"><Target size={24} color="#f43f5e" /></div>
+              <div className="dash-info">
+                <span>희망 목표 대학/전공</span>
+                <h3>성균관대 의생명공학과</h3>
+              </div>
+            </div>
+            <div className="dash-card">
+              <div className="dash-icon"><TrendingUp size={24} color="#10b981" /></div>
+              <div className="dash-info">
+                <span>현재 내신 추정치</span>
+                <h3>2.1 등급 <small className="gap-text">(목표대비 -0.3)</small></h3>
+              </div>
+            </div>
+          </section>
 
-            <div className="report-body">
-              <section className="report-section">
-                <h3 className="section-title"><TrendingUp size={18} /> 교과 성적 추이 및 경쟁력 분석</h3>
-                <div className="chart-wrapper">
-                  <ResponsiveContainer width="100%" height={200}>
-                    <LineChart data={[
-                      { name: '1-1', score: 2.1 },
-                      { name: '1-2', score: 1.8 },
-                      { name: '2-1', score: 1.5 },
-                      { name: '2-2', score: 1.3 },
-                    ]}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                      <YAxis reversed domain={[1, 5]} axisLine={false} tickLine={false} />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="score" stroke="#4f46e5" strokeWidth={3} dot={{ r: 6, fill: '#4f46e5' }} />
-                    </LineChart>
-                  </ResponsiveContainer>
+          <div className="planner-grid">
+            {/* Left Panel: Kanban Board */}
+            <section className="planner-tasks glass-panel">
+              <div className="section-head">
+                <h3><FileText size={20} /> 이번 달 탐구 과제 (칸반보드)</h3>
+              </div>
+
+              <div className="task-adder kanban-adder">
+                <input 
+                  type="text" 
+                  placeholder="새로운 과제를 입력하거나 [탐구활동 제안]에서 가져오세요..."
+                  value={newTaskText}
+                  onChange={(e) => setNewTaskText(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && addTask()}
+                />
+                <button className="add-task-btn" onClick={addTask}><Plus size={20} /></button>
+              </div>
+
+              <div className="kanban-board">
+                {renderKanbanColumn('todo', '할 일 (To Do)', <Circle size={18} color="#94a3b8" />)}
+                {renderKanbanColumn('in_progress', '진행 중 (In Progress)', <Clock size={18} color="#0ea5e9" />)}
+                {renderKanbanColumn('done', '완료 및 산출물 (Done)', <CheckCircle2 size={18} color="#10b981" />)}
+              </div>
+            </section>
+
+            {/* Right Panel: Analytics & Feedback */}
+            <div className="planner-sidebar">
+              <section className="planner-analytics glass-panel">
+                <div className="section-head">
+                  <h3><BarChart2 size={20} /> 월간 성취도 분석</h3>
                 </div>
-                <div className="analysis-text">
-                  <p>주요 교과 성적이 1학년 1학기 이후 꾸준히 상승 곡선을 그리고 있으며, 특히 수학과 과학 교과에서의 우수성이 두드러집니다. 
-                  희망 전공인 의생명공학계열 지원 시 강력한 학업 역량 지표로 활용될 수 있습니다.</p>
+                
+                <div className="progress-container">
+                  <div className="progress-circle-wrap">
+                    <svg className="progress-circle" viewBox="0 0 36 36">
+                      <path className="circle-bg"
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      />
+                      <path className="circle-bar"
+                        strokeDasharray={`${progressPercent}, 100`}
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      />
+                    </svg>
+                    <div className="progress-text">
+                      <span className="percent">{progressPercent}%</span>
+                      <span className="label">달성률</span>
+                    </div>
+                  </div>
+                  <div className="progress-stats">
+                    <div className="stat">
+                      <span className="s-label">완료 과제</span>
+                      <strong className="s-val text-green">{completedTasks}건</strong>
+                    </div>
+                    <div className="stat">
+                      <span className="s-label">남은 과제</span>
+                      <strong className="s-val text-red">{totalTasks - completedTasks}건</strong>
+                    </div>
+                  </div>
                 </div>
               </section>
 
-              <section className="report-section">
-                <h3 className="section-title"><Sparkles size={18} /> AI 생기부 종합 평가 요약</h3>
-                <div className="assessment-box">
-                  <div className="assessment-item">
-                    <CheckCircle2 size={16} color="#10b981" />
-                    <strong>학업 역량:</strong> <span>교과목 간 융합적 사고 능력이 뛰어나며 심화 탐구 능력이 우수함.</span>
-                  </div>
-                  <div className="assessment-item">
-                    <CheckCircle2 size={16} color="#10b981" />
-                    <strong>진로 역량:</strong> <span>의생명 계열에 대한 일관된 관심이 교과 및 창체 활동에 잘 녹아있음.</span>
-                  </div>
-                  <div className="assessment-item">
-                    <CheckCircle2 size={16} color="#10b981" />
-                    <strong>공동체 역량:</strong> <span>협동 프로젝트에서 주도적인 역할을 수행하며 리더십을 발휘함.</span>
-                  </div>
+              <section className="planner-feedback glass-panel">
+                <div className="section-head">
+                  <h3><MessageSquare size={20} /> 컨설턴트 밀착 피드백</h3>
                 </div>
-              </section>
-
-              <section className="report-section no-break">
-                <h3 className="section-title"><FileText size={18} /> 담당 컨설턴트 종합 소견</h3>
-                <div className="opinion-box">
+                <div className="feedback-body">
+                  <p className="feedback-hint">학생 및 학부모님께 발송될 코멘트입니다.</p>
                   <textarea 
-                    className="opinion-input no-print"
-                    placeholder="리포트에 포함될 컨설턴트 소견을 입력하세요..."
+                    className="feedback-input"
+                    placeholder="이번 주 학생의 활동 진척도나 보완해야 할 점을 기록하세요..."
                     value={consultantNote}
                     onChange={(e) => setConsultantNote(e.target.value)}
                   />
-                  <div className="opinion-print print-only">
-                    {consultantNote || '등록된 소견이 없습니다.'}
-                  </div>
+                  <button className="btn-primary w-full mt-3">피드백 저장</button>
                 </div>
               </section>
             </div>
-
-            <footer className="report-footer">
-              <div className="stamp-area">
-                <p>위 보고서는 교과 탐구 세특 전문가 시스템의 AI 분석을 바탕으로 작성되었습니다.</p>
-                <div className="signature">
-                  <span>교과 탐구 세특 전문가 원장 이기욱 (인)</span>
-                </div>
-              </div>
-              <p className="copyright">© 교과 탐구 세특 전문가. ALL RIGHTS RESERVED.</p>
-            </footer>
           </div>
         </div>
       ) : (
         <div className="empty-planner glass-panel">
-          <FileText size={48} className="muted-icon" />
-          <h3>학생을 선택하여 리포트를 생성하세요</h3>
-          <p>분석된 생기부 데이터를 바탕으로 공식 진단 보고서를 구성합니다.</p>
+          <Calendar size={64} className="muted-icon" />
+          <h3>학생을 선택하여 칸반 플래너를 시작하세요</h3>
+          <p>과제를 투두/진행중/완료로 구분하고 학생별 산출물을 누적할 수 있습니다.</p>
+        </div>
+      )}
+
+      {/* Upload Modal */}
+      {uploadModalTask && (
+        <div className="upload-modal-overlay fade-in">
+          <div className="upload-modal glass-panel">
+            <h3><Upload size={20} /> 탐구활동 결과물 업로드 (학생 매칭)</h3>
+            <p>이 산출물은 <strong>{selectedStudent?.name}</strong> 학생의 아카이브에 영구 누적됩니다.</p>
+            <div className="upload-dropzone">
+              <input type="file" onChange={(e) => handleFileUpload(e, uploadModalTask)} />
+              <div className="dropzone-content">
+                <FileText size={32} color="#0ea5e9" />
+                <span>PDF, HWP, Word 파일을 선택하거나 드래그하세요.</span>
+              </div>
+            </div>
+            <button className="cancel-btn mt-3" onClick={() => setUploadModalTask(null)}>취소</button>
+          </div>
         </div>
       )}
     </div>
