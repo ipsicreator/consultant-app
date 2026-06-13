@@ -251,3 +251,13 @@ VITE_ALADIN_TTB_KEY=ttb... (ì‚¬ìš©ìž í‚¤ ìž…ë ¥)
 2. **ÄÁ¼³ÅÏÆ® ¾Û** ÀúÀå¼Ò¿¡¼­ º¯°æµÈ \dmissionData.json\ ÆÄÀÏÀ» Commit ÇÏ°í Push ÇÕ´Ï´Ù.
 3. **¼öÇÁ¸®¸¶ ÇÃ·§Æû** ÀúÀå¼Ò¿¡¼­µµ µ¿ÀÏÇÏ°Ô Commit ÇÏ°í Push ÇÕ´Ï´Ù.
 4. Github¿¡ Push°¡ ¿Ï·áµÇ¸é, Vercel ½Ã½ºÅÛÀÌ ÀÌ¸¦ °¨ÁöÇÏ¿© 1~2ºÐ ³»·Î µÎ °¡Áö À¥¾Û ¸ðµÎ ÀÚµ¿À¸·Î ÃÖ½Å µ¥ÀÌÅÍ ¹öÀüÀ¸·Î Àç¹èÆ÷ÇÕ´Ï´Ù.
+
+---
+
+## [2026-06-13 Update] Admission Data & Diagnosis Logic
+
+- Mirrored the root admission changes into the consultant app via `scripts/sync_consultant_app.js`.
+- Consultant admission files are grouped under `src/utils/admission/`, `src/data/admission/`, and `src/components/admission/`.
+- Diagnosis logic uses the same 2026 -> 2025 -> 2024 ordered evaluation and range-based 50% / 70% final judgment as the root app.
+- The consultant app is treated as a synchronized mirror of the root admission pipeline, not a separate logic source.
+- Validation completed on the consultant app root with focused ESLint.
