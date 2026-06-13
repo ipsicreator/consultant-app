@@ -1,0 +1,162 @@
+export type YearCutoff = {
+  year: number;
+  cutoff50: number | null;
+  cutoff70: number | null;
+};
+
+export type YearFeedback = YearCutoff & {
+  status: "very_safe" | "safe" | "fit" | "challenge" | "risky" | "unknown";
+  gap50: number | null;
+  gap70: number | null;
+  summary: string;
+};
+
+export type AdmissionDiagnosisResult = {
+  finalLevel: string;
+  finalComment: string;
+  safeCutoff: number | null;
+  reachCutoff: number | null;
+  spread: number | null;
+  yearly: YearFeedback[];
+};
+
+const YEAR_ORDER = [2026, 2025, 2024];
+
+function roundToTwo(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+function weightedAverage(entries: Array<{ value: number; weight: number }>) {
+  const usable = entries.filter((entry) => Number.isFinite(entry.value));
+  if (!usable.length) return null;
+  const totalWeight = usable.reduce((sum, entry) => sum + entry.weight, 0);
+  if (!totalWeight) return null;
+  const total = usable.reduce((sum, entry) => sum + entry.value * entry.weight, 0);
+  return roundToTwo(total / totalWeight);
+}
+
+function classifyYear(studentIndex: number, cutoff50: number | null, cutoff70: number | null): YearFeedback["status"] {
+  if (cutoff50 === null && cutoff70 === null) return "unknown";
+  const safeThreshold = cutoff50 ?? cutoff70 ?? null;
+  const reachThreshold = cutoff70 ?? cutoff50 ?? null;
+  if (safeThreshold === null || reachThreshold === null) return "unknown";
+  if (studentIndex <= safeThreshold - 0.15) return "very_safe";
+  if (studentIndex <= safeThreshold + 0.05) return "safe";
+  if (studentIndex <= reachThreshold + 0.05) return "fit";
+  if (studentIndex <= reachThreshold + 0.35) return "challenge";
+  return "risky";
+}
+
+function statusScore(status: YearFeedback["status"]) {
+  switch (status) {
+    case "very_safe":
+      return 0;
+    case "safe":
+      return 1;
+    case "fit":
+      return 2;
+    case "challenge":
+      return 3;
+    case "risky":
+      return 4;
+    default:
+      return 2;
+  }
+}
+
+function statusLabel(status: YearFeedback["status"]) {
+  switch (status) {
+    case "very_safe":
+      return "매우 안정";
+    case "safe":
+      return "안정";
+    case "fit":
+      return "적정";
+    case "challenge":
+      return "도전";
+    case "risky":
+      return "상향/위험";
+    default:
+      return "기준 없음";
+  }
+}
+
+export function diagnoseAdmissionRange(studentIndex: number, rows: YearCutoff[]): AdmissionDiagnosisResult {
+  const normalizedRows = YEAR_ORDER.map((year) => {
+    const source = rows.find((row) => row.year === year) ?? { year, cutoff50: null, cutoff70: null };
+    const cutoff50 = source.cutoff50 ?? null;
+    const cutoff70 = source.cutoff70 ?? null;
+    const status = classifyYear(studentIndex, cutoff50, cutoff70);
+    return {
+      year,
+      cutoff50,
+      cutoff70,
+      status,
+      gap50: cutoff50 === null ? null : roundToTwo(studentIndex - cutoff50),
+      gap70: cutoff70 === null ? null : roundToTwo(studentIndex - cutoff70),
+      summary: `${year}학년도 ${statusLabel(status)}`,
+    } satisfies YearFeedback;
+  });
+
+  const weightedSafe = weightedAverage(
+    normalizedRows
+      .filter((row) => row.cutoff50 !== null)
+      .map((row, index) => ({ value: row.cutoff50 as number, weight: [0.5, 0.3, 0.2][index] ?? 0.1 })),
+  );
+  const weightedReach = weightedAverage(
+    normalizedRows
+      .filter((row) => row.cutoff70 !== null)
+      .map((row, index) => ({ value: row.cutoff70 as number, weight: [0.5, 0.3, 0.2][index] ?? 0.1 })),
+  );
+
+  const spread = weightedAverage(
+    normalizedRows
+      .filter((row) => row.cutoff50 !== null && row.cutoff70 !== null)
+      .map((row, index) => ({
+        value: (row.cutoff70 as number) - (row.cutoff50 as number),
+        weight: [0.5, 0.3, 0.2][index] ?? 0.1,
+      })),
+  );
+
+  const score = weightedAverage(
+    normalizedRows.map((row, index) => ({
+      value: statusScore(row.status),
+      weight: [0.5, 0.3, 0.2][index] ?? 0.1,
+    })),
+  );
+
+  const safeCutoff = weightedSafe;
+  const reachCutoff = weightedReach;
+  const safeMargin = spread !== null ? Math.max(0.12, Math.min(0.25, spread * 0.12)) : 0.15;
+  const challengeMargin = spread !== null ? Math.max(0.25, Math.min(0.5, spread * 0.35)) : 0.35;
+
+  let finalLevel = "상향/위험";
+  if (score !== null) {
+    if (score <= 0.6) finalLevel = "매우 안정";
+    else if (score <= 1.3) finalLevel = "안정";
+    else if (score <= 2.2) finalLevel = "적정";
+    else if (score <= 3.1) finalLevel = "도전";
+    else finalLevel = "상향/위험";
+  }
+
+  if (safeCutoff !== null && reachCutoff !== null) {
+    if (studentIndex <= safeCutoff - safeMargin) finalLevel = "매우 안정";
+    else if (studentIndex <= safeCutoff + safeMargin * 0.5) finalLevel = "안정";
+    else if (studentIndex <= reachCutoff + safeMargin * 0.5) finalLevel = "적정";
+    else if (studentIndex <= reachCutoff + challengeMargin) finalLevel = "도전";
+    else finalLevel = "상향/위험";
+  }
+
+  const yearlySummary = normalizedRows
+    .map((row) => `${row.year}학년도 ${statusLabel(row.status)}${row.cutoff50 !== null ? ` (50% ${row.cutoff50.toFixed(2)})` : ""}${row.cutoff70 !== null ? ` / 70% ${row.cutoff70.toFixed(2)}` : ""}`)
+    .join(" · ");
+
+  return {
+    finalLevel,
+    finalComment: `${yearlySummary}을 순서대로 반영한 결과 ${finalLevel}으로 판단했습니다.`,
+    safeCutoff,
+    reachCutoff,
+    spread,
+    yearly: normalizedRows,
+  };
+}

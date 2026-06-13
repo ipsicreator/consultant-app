@@ -261,3 +261,24 @@ VITE_ALADIN_TTB_KEY=ttb... (사용자 키 입력)
 - Diagnosis logic uses the same 2026 -> 2025 -> 2024 ordered evaluation and range-based 50% / 70% final judgment as the root app.
 - The consultant app is treated as a synchronized mirror of the root admission pipeline, not a separate logic source.
 - Validation completed on the consultant app root with focused ESLint.
+
+## [2026-06-13 Update] Workspace Cleanup & Separation
+
+- Confirmed the consultant app remains a separate repository on the Desktop and is not sharing the root `suprema-platform` workspace.
+- The `StudyEngine` folder was moved out of the root workspace to `C:\Users\chris\Desktop\StudyEngine` to keep the two app areas separated.
+- The same cleanup rule applies here: build caches and temporary artifacts are safe to remove, while source/data folders should stay intact.
+- Final judgment: keep admission/data inputs and app source; separate only generated or temporary workspace clutter.
+
+## [2026-06-13 Update] Aggressive Cleanup Scope
+
+- The same aggressive cleanup rule applies to the consultant app: dependency caches such as `node_modules/` are removable if rebuild time is acceptable.
+- Keep source/data folders intact; only delete regenerable build artifacts and temporary output.
+
+## [2026-06-13 Update] Three-Tier Cleanup Policy
+
+1. **Keep**: consultant app source, shared admission data, and required project config.
+2. **Delete when needed**: regenerable build/runtime clutter such as `.next/`, `node_modules/`, `outputs/`, `scratch/`, `.codex-work/`, and `tsconfig.tsbuildinfo`.
+3. **Review before deleting**: tooling and deployment metadata such as `.vercel/` and `.cursor/`; keep them unless you intentionally want to recreate the workspace config.
+
+- New projects must stay outside the consultant app folder.
+- The consultant app is separate from `suprema-platform` and should only receive mirrored logic or data updates when intended.
