@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import StudentDetail from './components/StudentDetail';
@@ -10,25 +10,26 @@ import Settings from './components/Settings';
 import Login from './components/Login';
 import LicenseGuard from './components/LicenseGuard';
 import BigDataPlatform from './components/BigDataPlatform';
+import AdmissionModule from './components/AdmissionModule';
 import { pb } from './lib/pocketbase';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(!!pb.authStore.model);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'student' | 'exploration' | 'inquiry_guide' | 'admin' | 'planner' | 'settings' | 'bigdata'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'student' | 'exploration' | 'inquiry_guide' | 'admission' | 'admin' | 'planner' | 'settings' | 'bigdata'>('dashboard');
   const [selectedStudent, setSelectedStudent] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
-    const handleGlobalNav = (e: any) => {
-      if (e.detail) {
-        handleNavigate(e.detail);
+    const handleGlobalNav = (event: any) => {
+      if (event.detail) {
+        handleNavigate(event.detail);
       }
     };
+
     window.addEventListener('NAVIGATE_TO', handleGlobalNav);
-    
     const unsubscribe = pb.authStore.onChange((_token, model) => {
       setIsAuthenticated(!!model);
     });
-    
+
     return () => {
       window.removeEventListener('NAVIGATE_TO', handleGlobalNav);
       unsubscribe();
@@ -57,13 +58,10 @@ function App() {
         <Sidebar currentView={currentView} onNavigate={handleNavigate} />
         <div className="main-content">
           {currentView === 'dashboard' && <Dashboard onSelectStudent={handleStudentSelect} />}
-          {currentView === 'student' && (
-            <StudentDetail studentData={selectedStudent} onBack={() => setCurrentView('dashboard')} />
-          )}
-          {currentView === 'exploration' && (
-            <ExplorationModule onBack={() => setCurrentView('dashboard')} studentData={selectedStudent} />
-          )}
+          {currentView === 'student' && <StudentDetail studentData={selectedStudent} onBack={() => setCurrentView('dashboard')} />}
+          {currentView === 'exploration' && <ExplorationModule onBack={() => setCurrentView('dashboard')} studentData={selectedStudent} />}
           {currentView === 'inquiry_guide' && <InquiryGuide />}
+          {currentView === 'admission' && <AdmissionModule onBack={() => setCurrentView('dashboard')} studentData={selectedStudent} />}
           {currentView === 'admin' && <AdminDashboard />}
           {currentView === 'planner' && <MonthlyPlanner />}
           {currentView === 'settings' && <Settings />}
