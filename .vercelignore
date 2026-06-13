@@ -1,0 +1,13 @@
+﻿# Build artifacts and oversized local/runtime assets
+backend/
+captures/
+scratch/
+docs/
+study_lms_generator/
+교과세특전문가/
+node_modules/
+.vercel/
+*.log
+*.db
+*.zip
+*.exe
