@@ -28,7 +28,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       onLoginSuccess();
     } catch (error) {
       pb.authStore.clear();
-      setErrorMsg('로그인 실패: 이메일·비밀번호와 학원 소속·역할 등록을 확인해 주세요.');
+      setErrorMsg(error instanceof Error && error.message === '마스터는 Google 로그인으로 접속해 주세요.' ? error.message : '로그인 실패: 이메일·비밀번호와 학원 소속·역할 등록을 확인해 주세요.');
     } finally {
       setLoading(false);
     }
