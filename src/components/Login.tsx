@@ -3,7 +3,7 @@ import { pb, pocketbaseConfigured } from '../lib/pocketbase';
 import { resolveOrCreateProfile } from '../lib/profileLink';
 import { Lock, Mail, ArrowRight, ShieldCheck } from 'lucide-react';
 import './Login.css';
-import { APP_NAME } from '../lib/lab';
+import { APP_NAME, SUPREMA_LAB_URL } from '../lib/lab';
 
 interface LoginProps {
   onLoginSuccess: () => void;
@@ -43,6 +43,12 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           <p>학원 관리자 · 담당 컨설턴트 전용</p>
         </div>
 
+        <div className="master-login-entry">
+          <a href={SUPREMA_LAB_URL + '/admin/academy'} className="btn-secondary master-login-link"><ShieldCheck size={18} />마스터 로그인</a>
+          <p>마스터는 Google 계정으로 접속합니다.</p>
+        </div>
+
+        <p className="academy-login-note">학원 계정은 마스터가 발급합니다.</p>
         <form onSubmit={handleLogin} className="login-form">
           <div className="input-group">
             <label>이메일</label>

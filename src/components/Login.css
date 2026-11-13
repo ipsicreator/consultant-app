@@ -119,3 +119,9 @@
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   padding-top: 24px;
 }
+
+.master-login-entry { display: flex; flex-direction: column; align-items: center; gap: 10px; padding-bottom: 22px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.master-login-link { display: inline-flex; justify-content: center; align-items: center; gap: 8px; width: 100%; text-decoration: none; }
+.master-login-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.master-login-entry p, .academy-login-note { color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; margin: 0; text-align: center; }
+.academy-login-note { margin-bottom: 18px; }
