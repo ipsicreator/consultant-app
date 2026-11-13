@@ -14,7 +14,7 @@ import {
   FileDown,
   Sparkles
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import { SUPREMA_LAB_URL } from '../lib/lab';
 import { pb } from '../lib/pocketbase';
 import { extractCaseFromPDF } from '../lib/gemini';
 import './Settings.css';
@@ -123,7 +123,7 @@ const Settings: React.FC = () => {
         {/* Right Content Area */}
         <div className="settings-content glass-panel">
           {activeTab === 'library' ? (
-            <LibraryManager />
+            <section className="glass-panel"><h3>공통 입시 자료 관리</h3><p>공통 자료는 수프리마 랩에서 검증·반영하고 학원용 앱에서 함께 사용합니다.</p><a href={SUPREMA_LAB_URL + '/admin/admissions'} target="_blank" rel="noreferrer" className="btn-primary">수프리마 랩 자료 관리 열기</a></section>
           ) : (
             <>
               <div className="content-header">
@@ -226,180 +226,4 @@ const Settings: React.FC = () => {
 };
 
 // --- Library Manager Sub-Component ---
-const LibraryManager: React.FC = () => {
-  const [items, setItems] = useState<any[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState('');
-
-  const fetchLibrary = async () => {
-    try {
-      const records = await pb.collection('suprima_exploration_library').getFullList({
-        sort: '-created',
-      });
-      setItems(records);
-    } catch (error) {
-      console.error("Fetch library error:", error);
-    }
-  };
-
-  React.useEffect(() => {
-    fetchLibrary();
-  }, []);
-
-  // 엑셀 일괄 업로드
-  const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploading(true);
-    setUploadStatus('엑셀 데이터를 분석 중...');
-
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      const bstr = evt.target?.result;
-      const wb = XLSX.read(bstr, { type: 'binary' });
-      const wsname = wb.SheetNames[0];
-      const ws = wb.Sheets[wsname];
-      const data = XLSX.utils.sheet_to_json(ws);
-
-      setUploadStatus(`${data.length}건의 데이터를 DB에 적재 중...`);
-      
-      const toInsert = data.map((row: any) => ({
-        book_title: row['도서명'] || row['title'] || '',
-        author: row['저자'] || row['author'] || '',
-        inquiry_title: row['탐구주제'] || row['inquiry'] || '',
-        inquiry_content: row['탐구내용'] || row['content'] || '',
-        category: row['계열'] || row['category'] || '',
-        source_type: 'excel'
-      }));
-
-      try {
-        // PocketBase 병렬 처리 (청크 단위)
-        const CHUNK_SIZE = 10;
-        for (let i = 0; i < toInsert.length; i += CHUNK_SIZE) {
-          const chunk = toInsert.slice(i, i + CHUNK_SIZE);
-          setUploadStatus(`${data.length}건 중 ${i + chunk.length}건 적재 중...`);
-          await Promise.all(chunk.map(item => pb.collection('suprima_exploration_library').create(item)));
-        }
-        alert('업로드 완료!');
-        fetchLibrary();
-      } catch (error: any) {
-        alert('업로드 중 일부 오류가 발생했습니다: ' + error.message);
-      }
-      setIsUploading(false);
-      setUploadStatus('');
-    };
-    reader.readAsBinaryString(file);
-  };
-
-  // PDF AI 스캐닝 업로드
-  const handlePDFUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploading(true);
-    setUploadStatus('AI가 PDF 내용을 읽고 분석하는 중 (약 10~20초 소요)...');
-
-    try {
-      const extracted = await extractCaseFromPDF(file);
-      await pb.collection('suprima_exploration_library').create({
-        ...extracted,
-        source_type: 'pdf'
-      });
-      alert('AI PDF 분석 및 저장 완료!');
-      fetchLibrary();
-    } catch (err: any) {
-      alert('분석 실패: ' + err.message);
-    } finally {
-      setIsUploading(false);
-      setUploadStatus('');
-    }
-  };
-
-  const deleteItem = async (id: string) => {
-    if (!confirm('정말 삭제하시겠습니까?')) return;
-    try {
-      await pb.collection('suprima_exploration_library').delete(id);
-      fetchLibrary();
-    } catch (error) {
-      console.error("Delete item error:", error);
-    }
-  };
-
-  return (
-    <div className="library-manager">
-      <div className="content-header">
-        <h3>합격자 도서/탐구 라이브러리 (데이터뱅크)</h3>
-        <p>기록은 힘이 됩니다. 과거 우수 사례를 누적하여 상담 경쟁력을 높이세요.</p>
-      </div>
-
-      <div className="upload-actions">
-        <label className="upload-card">
-          <FileDown size={32} />
-          <div className="info">
-            <strong>엑셀(XLSX) 일괄 등록</strong>
-            <span>기존 도서/탐구 리스트를 한 번에 업로드</span>
-          </div>
-          <input type="file" accept=".xlsx, .xls" onChange={handleExcelUpload} hidden disabled={isUploading} />
-        </label>
-
-        <label className="upload-card ai-scan">
-          <Upload size={32} />
-          <div className="info">
-            <strong>합격생 PDF AI 스캔</strong>
-            <span>보고서나 포트폴리오에서 정보를 자동 추출</span>
-          </div>
-          <input type="file" accept=".pdf" onChange={handlePDFUpload} hidden disabled={isUploading} />
-        </label>
-      </div>
-
-      {isUploading && (
-        <div className="upload-progress glass-panel animate-pulse">
-          <Sparkles size={20} className="spin" />
-          <span>{uploadStatus}</span>
-        </div>
-      )}
-
-      <div className="library-list-container">
-        <div className="list-headers">
-           <div style={{ width: '40px' }}></div>
-           <div style={{ flex: 1 }}>도서명/저자</div>
-           <div style={{ flex: 2 }}>탐구주제(합격사례)</div>
-           <div style={{ width: '100px' }}>계열</div>
-           <div style={{ width: '60px' }}>출처</div>
-           <div style={{ width: '60px' }}>삭제</div>
-        </div>
-        <div className="library-items-scroll">
-          {items.map((item: any, idx: number) => (
-            <div className="library-row" key={item.id}>
-              <div style={{ width: '40px', color: '#64748b' }}>{items.length - idx}</div>
-              <div style={{ flex: 1 }}>
-                <strong>{item.book_title}</strong>
-                <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{item.author}</div>
-              </div>
-              <div style={{ flex: 2 }}>
-                 <div style={{ fontWeight: 'bold', color: '#f8fafc' }}>{item.inquiry_title}</div>
-                 <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
-                    {item.inquiry_content?.substring(0, 80)}...
-                 </div>
-              </div>
-              <div style={{ width: '100px' }}>
-                <span className="category-badge">{item.category}</span>
-              </div>
-              <div style={{ width: '60px', textAlign: 'center' }}>
-                {item.source_type === 'pdf' ? <FileText size={16} color="#10b981" /> : <Database size={16} color="#3b82f6" />}
-              </div>
-              <div style={{ width: '60px' }}>
-                 <button className="icon-btn secondary danger" onClick={() => deleteItem(item.id)}>
-                   <Trash2 size={16} />
-                 </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
 export default Settings;

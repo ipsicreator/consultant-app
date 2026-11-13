@@ -1,4 +1,12 @@
+/* global process */
 import puppeteer from 'puppeteer';
+
+const loginEmail = process.env.TEST_LOGIN_EMAIL;
+const loginPassword = process.env.TEST_LOGIN_PASSWORD;
+if (!loginEmail || !loginPassword) {
+  console.log('TEST_LOGIN_EMAIL과 TEST_LOGIN_PASSWORD를 별도로 설정한 경우에만 로그인 검사를 실행합니다.');
+  process.exit(0);
+}
 
 (async () => {
   const browser = await puppeteer.launch({ headless: 'new' });
@@ -11,15 +19,14 @@ import puppeteer from 'puppeteer';
     await page.waitForSelector('input[type="email"]');
     
     // Type credentials
-    await page.type('input[type="email"]', 'chrisklee69@gmail.com');
-    await page.type('input[type="password"]', 'aussie1996@@@');
+    await page.type('input[type="email"]', loginEmail);
+    await page.type('input[type="password"]', loginPassword);
     
     // Monitor network requests to see if PB returns 400
     page.on('response', async (response) => {
       if (response.url().includes('auth-with-password')) {
         console.log('Auth response status:', response.status());
-        const body = await response.text();
-        console.log('Auth response body:', body);
+        // Authentication response bodies may contain session tokens; never log them.
       }
     });
 

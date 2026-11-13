@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { pb } from '../lib/pocketbase';
-import { resolveOrCreateProfile } from '../lib/profileLink';
+import { requireAcademyScope } from '../lib/profileLink';
+import { filterValue } from '../lib/academyScope';
 import { ShieldAlert, PhoneCall } from 'lucide-react';
 
 interface LicenseGuardProps {
@@ -14,67 +15,16 @@ const LicenseGuard: React.FC<LicenseGuardProps> = ({ children }) => {
   });
 
   useEffect(() => {
-    const pickBestActiveLicense = async () => {
-      const activeLicenses = await pb.collection('suprima_licenses').getFullList({
-        filter: 'active=true',
-        sort: '-updated,-created',
-      }).catch(() => []);
-
-      if (!activeLicenses.length) return null;
-
-      // Prefer explicit academy licenses over empty academy_id placeholders.
-      const withAcademy = activeLicenses.find((l: any) => Boolean(l.academy_id));
-      return (withAcademy ?? activeLicenses[0]) as any;
-    };
-
+    let active = true;
     const run = async () => {
       try {
-        if (!pb.authStore.isValid || !pb.authStore.model) {
-          setState({ active: false, loading: false });
-          return;
-        }
-
-        const profile = await resolveOrCreateProfile();
-
-        if (!profile?.academy_id) {
-          // Fallback path for legacy DBs where user-profile linkage is missing.
-          const fallbackLicense = await pickBestActiveLicense();
-          const active = Boolean((fallbackLicense as any)?.active ?? false);
-          if (!active) {
-            setState({ active: false, loading: false });
-            return;
-          }
-
-          // Cache derived academy info so downstream screens can query data consistently.
-          sessionStorage.setItem('academy_id_fallback', String((fallbackLicense as any).academy_id || ''));
-          sessionStorage.setItem('license_mode', 'fallback');
-          setState({ active: true, loading: false });
-          return;
-        }
-
-        if (profile.role === 'master') {
-          setState({ active: true, loading: false });
-          return;
-        }
-
-        const license = await pb
-          .collection('suprima_licenses')
-          .getFirstListItem(`academy_id="${profile.academy_id}" && active=true`)
-          .catch(() => null);
-
-        const active = Boolean((license as any)?.active ?? (license as any)?.is_active ?? false);
-        if (active) {
-          sessionStorage.setItem('academy_id_fallback', String(profile.academy_id));
-          sessionStorage.setItem('license_mode', 'profile');
-        }
-        setState({ active, loading: false });
-      } catch (e) {
-        console.error('License check failed:', e);
-        setState({ active: false, loading: false });
-      }
+        sessionStorage.removeItem('academy_id_fallback'); sessionStorage.removeItem('license_mode');
+        const scope = await requireAcademyScope();
+        const license = await pb.collection('suprima_licenses').getFirstListItem('academy_id=' + filterValue(scope.academyId) + ' && active=true');
+        if (active) setState({ active: license.active === true && license.academy_id === scope.academyId, loading: false });
+      } catch { if (active) setState({ active: false, loading: false }); }
     };
-
-    run();
+    void run(); return () => { active = false; };
   }, []);
 
   if (state.loading) {
@@ -91,15 +41,15 @@ const LicenseGuard: React.FC<LicenseGuardProps> = ({ children }) => {
       <div className="license-blocked-overlay">
         <div className="license-card glass-panel">
           <ShieldAlert size={64} color="#ff4d4f" />
-          <h1>사용 권한이 만료되었습니다.</h1>
+          <h1>학원 이용 권한을 확인해 주세요.</h1>
           <p>
-            현재 서비스 이용 권한이 비활성화 상태입니다.
+            계정의 학원 소속·역할 또는 이용권을 확인하지 못했습니다.
             <br />
             계속 이용하시려면 관리자 또는 본사로 문의해 주세요.
           </p>
           <div className="contact-info">
             <PhoneCall size={18} />
-            <span>고객센터: 010-2370-1077 (대치수프리마 입시&코칭센터)</span>
+            <span>고객센터: 010-2370-1077 (수프리마 랩)</span>
           </div>
           <button
             className="btn-primary"

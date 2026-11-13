@@ -1,53 +1,37 @@
 import { pb } from './pocketbase';
-
-type AnyRec = Record<string, any>;
-
-const normalizeAcademyId = (value: unknown): string => {
-  if (typeof value !== 'string') return '';
-  return value.trim();
-};
-
-const pickFallbackAcademyId = async (): Promise<string> => {
-  const licenses = await pb
-    .collection('suprima_licenses')
-    .getFullList({ filter: 'active=true', sort: '-updated,-created' })
-    .catch(() => []);
-
-  const preferred = (licenses as AnyRec[]).find((l) => normalizeAcademyId(l.academy_id));
-  return normalizeAcademyId((preferred ?? (licenses as AnyRec[])[0] ?? {}).academy_id);
-};
-
-export const resolveOrCreateProfile = async (): Promise<AnyRec | null> => {
-  if (!pb.authStore.isValid || !pb.authStore.model) return null;
-  const user = pb.authStore.model as AnyRec;
-  const userId = String(user.id ?? '');
-  const isPocketBaseRecordId = /^[a-z0-9]{15}$/.test(userId);
-
-  // Query by admin_id first because user is often a relation field.
-  // Invalid relation filter formats can produce noisy 400 responses.
-  let linked =
-    (await pb.collection('suprima_profiles').getFirstListItem(`admin_id="${userId}"`).catch(() => null));
-
-  if (!linked && isPocketBaseRecordId) {
-    linked = await pb.collection('suprima_profiles').getFirstListItem(`user="${userId}"`).catch(() => null);
+import { assertStudentScope, filterValue, profileScope, studentFilter } from './academyScope';
+// Resolving a linked profile never creates or assigns one.
+export async function resolveOrCreateProfile() {
+  if (!pb.authStore.isValid || !pb.authStore.model?.id) throw new Error('다시 로그인해 주세요.');
+  if (pb.authStore.model.collectionName !== 'users') throw new Error('일반 학원 사용자 계정으로 로그인해 주세요.');
+  const userId = pb.authStore.model.id;
+  let matches;
+  try { matches = await pb.collection('suprima_profiles').getList(1, 2, { filter: '(admin_id=' + filterValue(userId) + ' || user=' + filterValue(userId) + ')' }); }
+  catch (error) {
+    if (![400, 404].includes((error as { status?: number }).status || 0)) throw error;
+    const readLegacyLink = async (field: string) => {
+      try { return await pb.collection('suprima_profiles').getList(1, 2, { filter: field + '=' + filterValue(userId) }); }
+      catch (reason) { if ([400, 404].includes((reason as { status?: number }).status || 0)) return { totalItems: 0, items: [] }; throw reason; }
+    };
+    const results = await Promise.all([readLegacyLink('admin_id'), readLegacyLink('user')]);
+    if (results.some(result => result.totalItems > 1)) throw new Error('본인에게 연결된 학원 프로필을 하나로 확인해 주세요.');
+    const profiles = new Map(results.flatMap(result => result.items).map(profile => [profile.id, profile]));
+    matches = { totalItems: profiles.size, items: [...profiles.values()] };
   }
-
-  if (linked) {
-    if (!linked.user && isPocketBaseRecordId) {
-      await pb.collection('suprima_profiles').update(linked.id, { user: userId }).catch(() => {});
-    }
-    return linked;
-  }
-
-  const academyId = await pickFallbackAcademyId();
-  const created = await pb.collection('suprima_profiles').create({
-    user: isPocketBaseRecordId ? userId : undefined,
-    admin_id: userId,
-    name: user.name || (user.email ? String(user.email).split('@')[0] : 'consultant'),
-    full_name: user.name || (user.email ? String(user.email).split('@')[0] : 'consultant'),
-    role: 'consultant',
-    academy_id: academyId,
-  }).catch(() => null);
-
-  return created as AnyRec | null;
-};
+  if (matches.items.length !== 1 || matches.totalItems !== 1) throw new Error('본인에게 연결된 학원 프로필을 하나로 확인해 주세요.');
+  const profile = matches.items[0];
+  profileScope(profile, userId);
+  return profile;
+}
+export async function requireAcademyScope() { return profileScope(await resolveOrCreateProfile(), pb.authStore.model?.id || ''); }
+export async function scopedStudents() {
+  const scope = await requireAcademyScope();
+  const records = await pb.collection('suprima_students').getFullList({ filter: studentFilter(scope, import.meta.env.VITE_STUDENT_CONSULTANT_FIELD), sort: '-created' });
+  records.forEach(record => assertStudentScope(record, scope, import.meta.env.VITE_STUDENT_CONSULTANT_FIELD));
+  return records;
+}
+export async function requireStudentAccess(id: string) {
+  const scope = await requireAcademyScope(); studentFilter(scope, import.meta.env.VITE_STUDENT_CONSULTANT_FIELD);
+  const student = await pb.collection('suprima_students').getOne(id);
+  assertStudentScope(student, scope, import.meta.env.VITE_STUDENT_CONSULTANT_FIELD); return scope;
+}

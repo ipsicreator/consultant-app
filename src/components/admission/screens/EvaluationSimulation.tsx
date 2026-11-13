@@ -2,7 +2,8 @@
 import { ArrowLeft, BarChart3, BrainCircuit, CheckCircle2, Search, Target } from 'lucide-react';
 import { pb } from '../../../lib/pocketbase';
 import { parseGpaTextToNumber } from '../../../utils/admission/admissionLines';
-import { ADMISSION_DATA } from '../data';
+import { useAdmissionData } from '../data';
+import { readStudentDraft } from '../../../lib/studentRecords';
 import { DEFAULT_CATEGORY_MAP, SUBJECTS } from '../../../lib/explorationConfig';
 
 interface EvaluationSimulationProps {
@@ -32,37 +33,19 @@ function scoreToLabel(score: number) {
 }
 
 export default function EvaluationSimulation({ onBack, studentData }: EvaluationSimulationProps) {
+  const { rows: ADMISSION_DATA, loading: dataLoading, error: dataError } = useAdmissionData();
   const [studentInfo, setStudentInfo] = useState<StudentInfo | null>(null);
   const [selectedMajor, setSelectedMajor] = useState('');
   const [keyword, setKeyword] = useState('');
   const [rubric, setRubric] = useState<RubricState>(DEFAULT_RUBRIC);
-  const [isSaved, setIsSaved] = useState(false);
+  const [rubricEdited, setRubricEdited] = useState(false);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        if (!studentData?.id) {
-          setStudentInfo(null);
-          return;
-        }
-        const saved = JSON.parse(localStorage.getItem(`student_info_${studentData.id}`) || '{}') as StudentInfo;
-        setStudentInfo(saved);
-        setSelectedMajor(saved.hopeMajor || '');
-        setKeyword(saved.activities || '');
-      } catch {
-        setStudentInfo(null);
-      }
-    };
-    load();
+  useEffect(() => { let active = true; setStudentInfo(null); setSelectedMajor(''); setKeyword(''); setRubricEdited(false);
+    if (studentData?.id) readStudentDraft(studentData.id).then(saved => { if (active) { setStudentInfo(saved); setSelectedMajor(saved.hopeMajor || ''); setKeyword(saved.activities || ''); } }).catch(() => { if (active) setStudentInfo(null); });
+    return () => { active = false; };
   }, [studentData?.id]);
 
-  const parsedGpa = useMemo(() => (studentInfo?.gpa ? parseGpaTextToNumber(studentInfo.gpa) : null), [studentInfo?.gpa]);
-  const recommendedCutoff = useMemo(() => {
-    const row = ADMISSION_DATA.find((item) => selectedMajor && item.dept.includes(selectedMajor)) || ADMISSION_DATA[0];
-    return row?.cutoff26 ?? row?.cutoff25 ?? row?.cutoff24 ?? null;
-  }, [selectedMajor]);
-
-  const targetGap = parsedGpa !== null && recommendedCutoff !== null ? (recommendedCutoff - parsedGpa).toFixed(2) : '-';
+  const parsedGpa = useMemo(() => (studentInfo?.gpa ? parseGpaTextToNumber(studentInfo.gpa) : null), [studentInfo]);
   const rubricAverage = Object.values(rubric).reduce((sum, value) => sum + value, 0) / Object.keys(rubric).length;
   const candidateKeywords = ['탐구', '독서', '협업', '문제해결', '자료분석'].filter((item) => `${studentInfo?.activities || ''} ${keyword}`.includes(item)).slice(0, 3);
   const interestIdeas = SUBJECTS.slice(0, 4).map((subject, index) => ({
@@ -72,6 +55,9 @@ export default function EvaluationSimulation({ onBack, studentData }: Evaluation
 
   return (
     <div className="p-6 min-h-screen" style={{ backgroundColor: '#f8fafc' }}>
+      {dataLoading && <p role="status">수프리마 랩의 공통 입시 자료를 불러오고 있습니다.</p>}
+      {dataError && <p role="alert">{dataError}</p>}
+      {!dataLoading && !dataError && ADMISSION_DATA.length === 0 && <p role="status">반영된 공통 입시 자료가 없습니다. 수프리마 랩에서 자료를 반영해 주세요.</p>}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.5rem', backgroundColor: '#fff', padding: '1.25rem 1.5rem', borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           {onBack && <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', cursor: 'pointer' }}><ArrowLeft size={18} /> 뒤로가기</button>}
@@ -84,16 +70,16 @@ export default function EvaluationSimulation({ onBack, studentData }: Evaluation
             </p>
           </div>
         </div>
-        <button onClick={() => { setIsSaved(true); window.setTimeout(() => setIsSaved(false), 2000); }} style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', backgroundColor: isSaved ? '#10b981' : '#7c3aed', color: '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <CheckCircle2 size={18} /> {isSaved ? '저장됨' : '저장'}
+        <button disabled title="이 화면의 영구 저장은 아직 제공되지 않습니다." style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', backgroundColor: '#64748b', color: '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <CheckCircle2 size={18} /> 저장 기능 준비 중
         </button>
       </div>
 
       <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', marginBottom: '1.25rem' }}>
         <Stat title="평균 등급" value={parsedGpa?.toFixed(2) ?? '-'} />
         <Stat title="목표 전공" value={selectedMajor || '미설정'} />
-        <Stat title="컷 차이" value={targetGap} />
-        <Stat title="사정관 총평" value={scoreToLabel(rubricAverage)} />
+        <Stat title="전형 비교" value="입시 진단에서 확인" />
+        <Stat title="컨설턴트 참고 평가" value={rubricEdited ? scoreToLabel(rubricAverage) : '평가 전'} />
       </div>
 
       <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: '1.3fr 0.7fr' }}>
@@ -105,7 +91,7 @@ export default function EvaluationSimulation({ onBack, studentData }: Evaluation
             {(['academic', 'inquiry', 'growth', 'fit'] as const).map((key) => (
               <label key={key} style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 700, color: '#475569' }}>
                 {key === 'academic' ? '학업 역량' : key === 'inquiry' ? '탐구 역량' : key === 'growth' ? '성장성' : '전공 적합성'}
-                <input type="range" min={1} max={5} value={rubric[key]} onChange={(e) => setRubric((prev) => ({ ...prev, [key]: Number(e.target.value) }))} />
+                <input type="range" min={1} max={5} value={rubric[key]} onChange={(e) => { setRubricEdited(true); setRubric((prev) => ({ ...prev, [key]: Number(e.target.value) })); }} />
               </label>
             ))}
           </div>
@@ -114,7 +100,7 @@ export default function EvaluationSimulation({ onBack, studentData }: Evaluation
               <BarChart3 size={18} /> 간단 진단
             </div>
             <p style={{ margin: 0, lineHeight: 1.7, color: '#475569' }}>
-              학생부 요약과 성적을 함께 보면 {scoreToLabel(rubricAverage)} 수준입니다. 탐구와 독서 제안은 전공 적합성 보완에 초점을 두고 연결합니다.
+              {rubricEdited ? '담당자가 입력한 참고 평가입니다. 입시 판정은 전형별 근거로 별도 확인해 주세요.' : '학생부 근거를 확인한 뒤 항목별 참고 평가를 입력해 주세요.'}
             </p>
           </div>
         </div>

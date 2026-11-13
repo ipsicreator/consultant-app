@@ -14,7 +14,7 @@ import {
   MessageSquare,
   Circle
 } from 'lucide-react';
-import { pb } from '../lib/pocketbase';
+import { scopedStudents } from '../lib/profileLink';
 import './MonthlyPlanner.css';
 
 type TaskStatus = 'todo' | 'in_progress' | 'done';
@@ -33,21 +33,17 @@ const MonthlyPlanner: React.FC = () => {
   const [consultantNote, setConsultantNote] = useState('');
   
   // Kanban Tasks
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: '1', text: '기후 변화 모델링 추천 도서 완독', status: 'done', week: 1 },
-    { id: '2', text: '희망 전공 관련 시사 뉴스 3개 요약', status: 'in_progress', week: 1 },
-    { id: '3', text: '실험 설계안 1차 기획안 제출', status: 'todo', week: 2 },
-  ]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   
   const [newTaskText, setNewTaskText] = useState('');
   const [uploadModalTask, setUploadModalTask] = useState<string | null>(null);
 
   const fetchStudents = async () => {
     try {
-      const records = await pb.collection('suprima_students').getFullList();
+      const records = await scopedStudents();
       setStudents(records);
     } catch (error) {
-      console.error("Fetch students error:", error);
+      setStudents([]);
     }
   };
 
@@ -94,7 +90,7 @@ const MonthlyPlanner: React.FC = () => {
       setTimeout(() => {
         setTasks(tasks.map(t => t.id === taskId ? { ...t, fileName: file.name } : t));
         setUploadModalTask(null);
-        alert(`${file.name} 결과물이 ${selectedStudent?.name || '학생'}에게 매칭되어 누적(업로드)되었습니다!`);
+        alert(`${file.name} 결과물이 ${selectedStudent?.name || '학생'}에게 매칭되어 현재 작업에 추가되었습니다. 실제 파일 업로드·영구 저장은 아직 제공되지 않습니다.`);
       }, 500);
     }
   };

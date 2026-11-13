@@ -1,42 +1,51 @@
-﻿# Suprima Platform - 교과·세특 코칭 운영 앱
+# 수프리마 랩 학원용
 
-수프리마 플랫폼은 학원/컨설턴트가 학생 데이터를 관리하고, 학생부 분석 및 심화탐구 제안을 수행하는 운영용 앱입니다.
+수프리마 랩에 연결되는 학원 관리자·담당 컨설턴트용 앱입니다. 기존 화면 디자인과 로고 자산은 유지하고 학원 운영 범위·공통 입시 자료·분석 연결을 정리했습니다.
 
-## 핵심 기능
-- 학생 CRM 관리: 학생 등록, 상태 변경, 상세 진입
-- 학생부 분석: 텍스트 기반 AI 분석 및 결과 저장
-- AI 탐구 브레인: 관심사 기반 탐구 주제/활동/세특 초안 생성
-- 라이브러리 관리: 엑셀 일괄 업로드, PDF AI 추출 적재
-- 월간/진학 리포트: 학생별 리포트 확인 및 출력
-- 라이선스 가드: 활성 라이선스 체크 후 접근 제어
+## 역할과 범위
 
-## 기술 스택
-- Frontend: React + Vite + TypeScript
-- Backend/Data: PocketBase
-- AI: Google Gemini (`@google/generative-ai`)
-- 기타: Lucide React, Recharts, XLSX
+- 일반 PocketBase users 계정으로 로그인합니다. 슈퍼유저 계정은 앱 사용 계정으로 받지 않습니다.
+- suprima_profiles의 user 또는 admin_id로 본인 계정을 확인합니다. 역할은 master/admin/consultant, academy_id는 필수입니다.
+- 프로필을 자동 생성하거나 임의의 활성 학원·이용권에 연결하지 않습니다.
+- suprima_licenses의 같은 academy_id와 active=true를 확인해야 이용할 수 있습니다.
+- 학원 관리자·마스터도 현재 소속 학원 범위만 조회합니다. 담당 컨설턴트는 실제 배정 관계 설정 전 학생 조회를 차단합니다.
+- 관리자 화면은 소속 담당자·학생과 실제 배정 인원을 표시합니다. 계정 등록·소속 변경은 본사 관리자가 처리합니다.
 
-## 실행 방법
-1. 의존성 설치
-```bash
-npm install
-```
-2. 환경변수 설정 (`.env.local`)
-```env
-VITE_POCKETBASE_URL=http://127.0.0.1:8090
-VITE_GEMINI_API_KEY=YOUR_GEMINI_API_KEY
-VITE_ALADIN_TTB_KEY=YOUR_ALADIN_TTB_KEY
-```
-3. 개발 서버 실행
-```bash
-npm run dev
-```
-4. 빌드
-```bash
-npm run build
-```
+## 수프리마 랩 연결
 
-## 운영 메모
-- 기본 로컬 주소: `http://127.0.0.1:5173`
-- PocketBase 기본 주소: `http://127.0.0.1:8090`
-- 라이선스/학원 매핑이 없으면 일부 화면 접근이 제한될 수 있습니다.
+- 공통 입시 파일은 수프리마 랩의 /admin/admissions에서 검증·반영합니다.
+- 학원 앱은 수프리마 랩 /api/admissions의 현재 활성 자료를 조회합니다. 로컬 복제 JSON을 사용하지 않습니다.
+- 공통 자료가 없거나 연결이 실패하면 해당 상태를 알립니다. 다른 전형·임의 입결로 대신 판단하지 않습니다.
+- AI는 수프리마 랩 /api/academy/ai로 로그인 토큰을 전달하여 서버에서 처리합니다. 클라이언트 코드에 Gemini·알라딘 비밀키를 넣지 않습니다.
+- PDF는 application/pdf, 원본 최대 2MB입니다. AI 실패 시 가상 점수·도서·문장을 성공 결과로 채우지 않습니다.
+- 알라딘 OpenAPI 종료에 따라 기존 API 프록시와 기본 키 사용을 제거했습니다. 도서 검색 링크와 실제 서지 확인은 구분합니다.
+
+## 환경변수
+
+| 이름 | 값·범위 |
+|---|---|
+| VITE_POCKETBASE_URL | 운영 PocketBase 공개 접속 주소. 일반 users 인증용 |
+| VITE_SUPREMA_LAB_URL | https://suprema-lab.vercel.app |
+| VITE_STUDENT_CONSULTANT_FIELD | 실제 학생→suprima_profiles 배정 관계 필드가 확인된 경우에만 설정 |
+
+배정 필드는 실제 스키마와 관계 대상을 확인한 뒤 설정합니다. 값은 프로필 ID 또는 프로필 ID 배열이어야 합니다. 임의의 필드명을 추가해 조회 범위를 넓히지 않습니다. 미설정 상태의 담당 컨설턴트 학생 조회 제한은 의도한 동작입니다.
+
+기존 배포에 보존된 AI 키는 서버 함수에서만 읽을 수 있습니다. 프런트 src에서 VITE_GEMINI_API_KEY·VITE_ALADIN_TTB_KEY를 참조하지 않습니다. 이 설정명은 기존 비밀값의 이동·공개를 뜻하지 않습니다.
+
+## 실행과 검증
+
+- npm ci --ignore-scripts
+- npm test
+- npm run lint -- --quiet
+- npm run build
+- npm run dev
+
+## 운영 적용 시 확인할 사항
+
+1. PocketBase의 profiles/users/student 관계와 실제 배정 필드를 확인합니다.
+2. 데이터베이스 API 규칙으로 타 학원·미배정 학생의 직접 요청을 차단합니다. 화면의 필터·역할 검사만으로 DB 보안이 완성되었다고 볼 수 없습니다.
+3. 서로 다른 두 학원과 관리자·담당자로 실제 조회·변경 거부를 확인합니다.
+4. 수프리마 랩의 허용 출처, PocketBase 접속 주소, AI 서버 함수와 라이선스를 운영 계정으로 확인합니다.
+5. 기존 별도 학습 플래너의 일부 작업·첨부는 현재 화면 상태이며 영구 저장·파일 보관으로 표시하지 않습니다. 학생 상세에 저장하는 기록과 구분합니다.
+
+운영 URL 변경과 Vercel 프로젝트·환경변수 설정은 배포 확인 기록과 함께 관리합니다. 기존 GitHub 저장소 식별자는 별도로 변경하지 않습니다.

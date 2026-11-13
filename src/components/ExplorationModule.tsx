@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { Lightbulb, BookOpen, Sparkles, Send, RefreshCw, X, ArrowLeft, Calendar } from 'lucide-react';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { requestLabAI } from '../lib/lab';
+import { requireStudentAccess } from '../lib/profileLink';
+import { sessionIdentity } from '../lib/studentRecords';
 import { SUBJECTS, DEFAULT_CATEGORY_MAP } from '../lib/explorationConfig';
 import './ExplorationModule.css';
 
@@ -17,41 +19,10 @@ type Suggestion = {
   output: string;
 };
 
-const fallbackSuggestions = (a: string, b: string, c: string, d: string): Suggestion[] => [
-  {
-    title: `${a} × ${c} 융합 탐구`,
-    objective: `${a} 기반 역량을 ${c} 관점으로 확장`,
-    reading: { bookTitle: `${a}를 바꾸는 생각법`, reason: `${a} 기초개념과 실제 적용 프레임 확보` },
-    activitySteps: ['핵심 개념 3개 정리', '학교 사례 1개 데이터화', '개선안 발표 슬라이드 작성'],
-    output: '세특 문장 초안 + 탐구 보고서 1p',
-  },
-  {
-    title: `${b} 중심 문제해결 프로젝트`,
-    objective: `${b} 이슈를 ${d} 방식으로 해결`,
-    reading: { bookTitle: `${b} 인사이트 리포트`, reason: `문제 정의/가설 설정 역량 강화` },
-    activitySteps: ['문제 정의', '가설 수립', '실험/조사', '결론 정리'],
-    output: '탐구활동 기록지 + 발표 대본',
-  },
-  {
-    title: `실생활 연계 ${a} 모델링`,
-    objective: `교과 지식을 실생활 사회 문제에 적용`,
-    reading: { bookTitle: `일상 속의 ${a}`, reason: `실생활 적용 아이디어 발굴` },
-    activitySteps: ['문헌 조사', '가설 모델링', '시뮬레이션'],
-    output: '소논문 형태의 결과 보고서',
-  },
-  {
-    title: `${c} 트렌드 분석 보고서`,
-    objective: `최신 연구 동향 파악 및 진로 연관성 어필`,
-    reading: { bookTitle: `2025 ${c} 트렌드`, reason: `최신 기술 동향 이해` },
-    activitySteps: ['논문 요약', '전문가 인터뷰 요약', '향후 발전 방향 제시'],
-    output: '심화 탐구 에세이',
-  }
-];
-
 const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBack }) => {
   const getInitialKeywords = () => {
     try {
-      const stored = sessionStorage.getItem('exploration_keywords');
+      const stored = sessionStorage.getItem('exploration_keywords:' + sessionIdentity() + ':' + (studentData?.id || 'unassigned'));
       return stored && stored !== 'undefined' ? JSON.parse(stored) : {};
     } catch (e) {
       return {};
@@ -76,8 +47,6 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
   const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState<Suggestion[] | null>(null);
 
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-  const genAI = useMemo(() => new GoogleGenerativeAI(apiKey), [apiKey]);
 
   const generate = async () => {
     const sKeys = [studentKeyword1, studentKeyword2, studentKeyword3].filter(k => k.trim());
@@ -90,52 +59,17 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
 
     setIsGenerating(true);
     try {
-      if (!apiKey) {
-        setTimeout(() => {
-          setResult(fallbackSuggestions(sKeys[0]||'데이터', sKeys[1]||'발표', uKeys[0]||'AI', uKeys[1]||'사회문제'));
-          setIsGenerating(false);
-        }, 1500);
-        return;
-      }
-
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-      const prompt = `학생명: ${studentData?.name || '학생'}
-[탐구 조건]
-- 교과군: ${genSubject}
-- 학년: ${genGrade}
-- 학생부 추출 핵심 키워드: ${sKeys.join(', ')}
-- 컨설턴트 추가(진로/관심사) 키워드: ${uKeys.join(', ')}
-
-위 조건과 키워드들을 완벽하게 융합하여, 입학사정관의 눈길을 사로잡을 수 있는 고품질의 [심화 탐구활동 주제]를 정확히 4개 생성해줘.
-
-조건:
-- 학생의 학년(${genGrade}) 수준에 맞는 깊이여야 함.
-- 선택된 교과군(${genSubject})의 성취기준 및 키워드의 맥락과 완벽히 직결되어야 함.
-- 각 주제는 서로 다른 접근 방식(예: 실험형, 문헌조사형, 데이터분석형, 독서융합형)을 가져야 함.
-- 반드시 추천 독서 1권을 매핑해야 함.
-
-다음 JSON 형식으로만 완벽하게 반환해줘:
-[
-  {
-    "title": "주제명 (구체적이고 매력적으로)",
-    "objective": "탐구 목적 및 역량 어필 포인트 (1-2줄)",
-    "reading": { "bookTitle": "추천 도서명", "reason": "이 책을 읽어야 하는 이유" },
-    "activitySteps": ["단계1", "단계2", "단계3", "단계4"],
-    "output": "최종 산출물 형태 (예: 2페이지 탐구보고서, 발표 슬라이드)"
-  }
-]`;
-      
-      const raw = (await (await model.generateContent(prompt)).response).text().replace(/```json|```/g, '').trim();
-      const parsed = JSON.parse(raw.match(/\[[\s\S]*\]/)?.[0] || raw);
-      
+      if (studentData?.id) await requireStudentAccess(studentData.id);
+      const parsed = await requestLabAI('exploration-topics', { studentName: studentData?.name || '', subject: genSubject, grade: genGrade, studentKeywords: sKeys, userKeywords: uKeys });
       if (Array.isArray(parsed) && parsed.length > 0) {
         setResult(parsed);
       } else {
-        setResult(fallbackSuggestions(sKeys[0]||'데이터', sKeys[1]||'발표', uKeys[0]||'AI', uKeys[1]||'사회문제'));
+        throw new Error('탐구 제안 응답을 확인하지 못했습니다. 다시 시도해 주세요.');
       }
     } catch (e) {
       console.error(e);
-      setResult(fallbackSuggestions(sKeys[0]||'데이터', sKeys[1]||'발표', uKeys[0]||'AI', uKeys[1]||'사회문제'));
+      setResult(null);
+      alert(e instanceof Error ? e.message : '탐구 제안을 완료하지 못했습니다.');
     } finally {
       setIsGenerating(false);
     }

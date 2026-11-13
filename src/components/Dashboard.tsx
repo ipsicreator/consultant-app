@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Bell, UserPlus, ArrowRight, BookOpen, Clock, X, Save, Edit3, FileText } from 'lucide-react';
 import { pb } from '../lib/pocketbase';
-import { resolveOrCreateProfile } from '../lib/profileLink';
+import { requireAcademyScope, scopedStudents, requireStudentAccess } from '../lib/profileLink';
+import { canManageAcademy, studentFilter } from '../lib/academyScope';
 import './Dashboard.css';
 
 interface Student {
@@ -37,32 +38,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectStudent }) => {
     class_type: '', notes: ''
   });
   const [academyId, setAcademyId] = useState<string | null>(null);
+  const [accessError, setAccessError] = useState('');
+  const [search, setSearch] = useState('');
 
-  const fetchStudents = async (academyIdParam: string) => {
-    setLoading(true);
-    const records = await pb.collection('suprima_students').getFullList({
-      filter: `academy_id="${academyIdParam}"`,
-      sort: '-created',
-    });
-    setStudents(records as any);
-    setLoading(false);
+  const fetchStudents = async (_academyIdParam?: string) => {
+    setLoading(true); setAccessError('');
+    try { const scope = await requireAcademyScope(); setAcademyId(scope.academyId); setStudents(await scopedStudents() as unknown as Student[]); }
+    catch (error) { setStudents([]); setAccessError(error instanceof Error ? error.message : '학생 접근 권한을 확인해 주세요.'); }
+    finally { setLoading(false); }
   };
-
-  useEffect(() => {
-    const loadAcademyAndStudents = async () => {
-      if (pb.authStore.isValid && pb.authStore.model) {
-        const profile: any = await resolveOrCreateProfile();
-        const academy = profile?.academy_id || sessionStorage.getItem('academy_id_fallback');
-        setAcademyId(academy);
-        if (academy) {
-          await fetchStudents(academy);
-        } else {
-          setLoading(false);
-        }
-      }
-    };
-    loadAcademyAndStudents();
-  }, []);
+  useEffect(() => { void fetchStudents(); }, []);
 
   const handleCreateStudent = async (goToAnalysis: boolean = false) => {
     if (!newStudent.name || !newStudent.school || !newStudent.grade || !newStudent.student_phone || !newStudent.parent_phone || !academyId) {
@@ -71,12 +56,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectStudent }) => {
     }
 
     try {
+      const scope = await requireAcademyScope();
+      studentFilter(scope, import.meta.env.VITE_STUDENT_CONSULTANT_FIELD);
+      const assignmentField = import.meta.env.VITE_STUDENT_CONSULTANT_FIELD;
       const createdRecord = await pb.collection('suprima_students').create({
+        ...(!canManageAcademy(scope) && assignmentField ? { [assignmentField]: scope.profileId } : {}),
         name: newStudent.name,
         school: newStudent.school,
         grade: newStudent.grade,
         enrollment_status: '미등록',
-        academy_id: academyId,
+        academy_id: scope.academyId,
         parent_phone: newStudent.parent_phone,
         student_phone: newStudent.student_phone,
         gender: newStudent.gender,
@@ -101,6 +90,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectStudent }) => {
 
   const changeStatus = async (id: string, newStatus: string) => {
     try {
+      await requireStudentAccess(id);
       await pb.collection('suprima_students').update(id, {
         enrollment_status: newStatus
       });
@@ -110,14 +100,14 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectStudent }) => {
     }
   };
 
-  const filteredStudents = students.filter(s => (s.enrollment_status || '미등록') === activeTab);
+  const filteredStudents = students.filter(s => (s.enrollment_status || '미등록') === activeTab && (s.name + ' ' + s.school).toLowerCase().includes(search.trim().toLowerCase()));
 
   return (
     <div className="dashboard">
       <header className="dashboard-header glass-panel">
         <div className="search-bar">
           <Search size={20} className="search-icon" />
-          <input type="text" placeholder="학생 이름, 학교 검색..." />
+          <input type="text" placeholder="학생 이름, 학교 검색..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div className="header-actions">
           <button className="icon-btn"><Bell size={20} /><span className="notification-dot"></span></button>
@@ -127,6 +117,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectStudent }) => {
         </div>
       </header>
 
+      {accessError && <p role="alert">{accessError}</p>}
       <div className="dashboard-content">
         <div className="student-list-section glass-panel">
           <div className="crm-tabs">

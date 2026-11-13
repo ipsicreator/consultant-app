@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import StudentDetail from './components/StudentDetail';
@@ -12,11 +12,25 @@ import LicenseGuard from './components/LicenseGuard';
 import BigDataPlatform from './components/BigDataPlatform';
 import AdmissionModule from './components/AdmissionModule';
 import { pb } from './lib/pocketbase';
+import AcademyAdminOnly from './components/AcademyAdminOnly';
+import { sessionIdentity } from './lib/studentRecords';
+import { APP_NAME } from './lib/lab';
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(!!pb.authStore.model);
+  const [authUserId, setAuthUserId] = useState(sessionIdentity);
+  const identityRef = useRef(authUserId);
+  const [isAuthenticated, setIsAuthenticated] = useState(pb.authStore.isValid);
   const [currentView, setCurrentView] = useState<'dashboard' | 'student' | 'exploration' | 'inquiry_guide' | 'admission' | 'admin' | 'planner' | 'settings' | 'bigdata'>('dashboard');
   const [selectedStudent, setSelectedStudent] = useState<{ id: string; name: string } | null>(null);
+
+  const handleNavigate = (view: string) => {
+    if (!['dashboard', 'student', 'exploration', 'inquiry_guide', 'admission', 'admin', 'planner', 'settings', 'bigdata'].includes(view)) return;
+    if (view === 'student') {
+      setSelectedStudent(null);
+    }
+    setCurrentView(view as any);
+  };
+
 
   useEffect(() => {
     const handleGlobalNav = (event: any) => {
@@ -26,9 +40,15 @@ function App() {
     };
 
     window.addEventListener('NAVIGATE_TO', handleGlobalNav);
-    const unsubscribe = pb.authStore.onChange((_token, model) => {
-      setIsAuthenticated(!!model);
-    });
+    document.title = APP_NAME;
+    const unsubscribe = pb.authStore.onChange(() => {
+      const next = sessionIdentity();
+      if (identityRef.current !== next) {
+        identityRef.current = next; setAuthUserId(next); setSelectedStudent(null); setCurrentView('dashboard');
+        sessionStorage.removeItem('exploration_keywords');
+      }
+      setIsAuthenticated(Boolean(next));
+    });;
 
     return () => {
       window.removeEventListener('NAVIGATE_TO', handleGlobalNav);
@@ -36,12 +56,6 @@ function App() {
     };
   }, []);
 
-  const handleNavigate = (view: string) => {
-    if (view === 'student') {
-      setSelectedStudent(null);
-    }
-    setCurrentView(view as any);
-  };
 
   const handleStudentSelect = (id: string, name: string) => {
     setSelectedStudent({ id, name });
@@ -53,18 +67,18 @@ function App() {
   }
 
   return (
-    <LicenseGuard>
+    <LicenseGuard key={authUserId}>
       <div className="app-container">
         <Sidebar currentView={currentView} onNavigate={handleNavigate} />
         <div className="main-content">
           {currentView === 'dashboard' && <Dashboard onSelectStudent={handleStudentSelect} />}
-          {currentView === 'student' && <StudentDetail studentData={selectedStudent} onBack={() => setCurrentView('dashboard')} />}
-          {currentView === 'exploration' && <ExplorationModule onBack={() => setCurrentView('dashboard')} studentData={selectedStudent} />}
+          {currentView === 'student' && <StudentDetail key={selectedStudent?.id || 'no-student'} studentData={selectedStudent} onBack={() => setCurrentView('dashboard')} />}
+          {currentView === 'exploration' && <ExplorationModule key={selectedStudent?.id || 'no-student'} onBack={() => setCurrentView('dashboard')} studentData={selectedStudent} />}
           {currentView === 'inquiry_guide' && <InquiryGuide />}
-          {currentView === 'admission' && <AdmissionModule onBack={() => setCurrentView('dashboard')} studentData={selectedStudent} />}
-          {currentView === 'admin' && <AdminDashboard />}
+          {currentView === 'admission' && <AdmissionModule key={selectedStudent?.id || 'no-student'} onBack={() => setCurrentView('dashboard')} studentData={selectedStudent} />}
+          {currentView === 'admin' && <AcademyAdminOnly><AdminDashboard /></AcademyAdminOnly>}
           {currentView === 'planner' && <MonthlyPlanner />}
-          {currentView === 'settings' && <Settings />}
+          {currentView === 'settings' && <AcademyAdminOnly><Settings /></AcademyAdminOnly>}
           {currentView === 'bigdata' && <BigDataPlatform />}
         </div>
       </div>

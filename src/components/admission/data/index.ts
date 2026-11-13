@@ -1,1 +1,2 @@
-export { ADMISSION_DATA, type AdmissionRow } from "./admissionData";
+export type { AdmissionRow } from './admissionData';
+export { useAdmissionData } from './useAdmissionData';

@@ -1,0 +1,31 @@
+const assert=require('node:assert/strict'),fs=require('node:fs/promises'),path=require('node:path'),net=require('node:net'),{spawn}=require('node:child_process');
+(async()=>{
+ const port=await new Promise(resolve=>{const server=net.createServer();server.listen(0,'127.0.0.1',()=>{const p=server.address().port;server.close(()=>resolve(p));});}),base='http://127.0.0.1:'+port;
+ const child=spawn(process.execPath,['node_modules/vite/bin/vite.js','preview','--host','127.0.0.1','--port',String(port)],{cwd:process.cwd(),windowsHide:true,stdio:'ignore'});let browser;
+ try{
+  let ready=false;for(let i=0;i<80;i++){try{if((await fetch(base)).ok){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,200));}assert.ok(ready,'Preview did not start');
+  browser=await require('puppeteer').launch({headless:true,executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'});
+  const results=[];const output=path.resolve('outputs/qa');await fs.mkdir(output,{recursive:true});
+  for(const role of ['anonymous','admin','consultant','foreign-profile']){
+   const context=await browser.createBrowserContext(),page=await context.newPage();await page.setViewport({width:1440,height:1000});const errors=[],studentQueries=[];page.on('pageerror',error=>errors.push(error.message));
+   let profile={id:'profile00000001',admin_id:role==='foreign-profile'?'other0000000001':'user00000000001',user:role==='foreign-profile'?'other0000000001':'user00000000001',academy_id:'academy-a',role:role==='consultant'?'consultant':'admin',name:'검증 담당자'};
+   await page.setRequestInterception(true);page.on('request',request=>{const url=new URL(request.url());const match=url.pathname.match(/\/api\/collections\/([^/]+)\/records(?:\/([^/]+))?/);if(match){const collection=match[1];let items=[];if(collection==='suprima_profiles')items=[profile];if(collection==='suprima_licenses')items=[{id:'license00000001',academy_id:profile.academy_id,active:true}];if(collection==='suprima_students'){studentQueries.push(url.searchParams.get('filter'));items=[{id:'student00000001',academy_id:'academy-a',name:'검증 학생',school:'검증고',grade:'고3',enrollment_status:'미등록'}];}void request.respond({status:200,contentType:'application/json',body:JSON.stringify(match[2]?items[0]:{page:1,perPage:500,totalItems:items.length,totalPages:1,items})});return;}if(request.url().startsWith(base)||request.url().startsWith('data:'))void request.continue();else void request.abort();});
+   if(role!=='anonymous'){const token='e30.'+Buffer.from(JSON.stringify({exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.test';await page.evaluateOnNewDocument((token)=>{const record={id:'user00000000001',collectionName:'users',email:'test@example.test'};localStorage.setItem('pocketbase_auth',JSON.stringify({token,record,model:record}));},token);}
+   await page.goto(base,{waitUntil:'domcontentloaded'});
+   if(role==='anonymous'){await page.waitForFunction(()=>document.body.innerText.includes('수프리마 랩 학원용 로그인'));}
+   if(role==='admin'){
+    await page.waitForFunction(()=>document.body.innerText.includes('검증 학생'));assert.ok(studentQueries.length>0);assert.ok(studentQueries.every(filter=>filter==='academy_id="academy-a"'));
+    await page.evaluate(()=>window.dispatchEvent(new CustomEvent('NAVIGATE_TO',{detail:'admin'})));await page.waitForFunction(()=>document.body.innerText.includes('소속 컨설턴트'));assert.equal(await page.$eval('body',e=>e.innerText.includes('배정 학생 12')),false);
+    await page.screenshot({path:path.join(output,'academy-admin.png'),fullPage:true});const oldQueries=studentQueries.length;
+    profile={...profile,id:'profile00000002',admin_id:'user00000000002',user:'user00000000002',academy_id:'academy-b',role:'consultant',name:'다른 담당자'};
+    await page.evaluate(()=>{const auth=JSON.parse(localStorage.getItem('pocketbase_auth'));const record={id:'user00000000002',collectionName:'users',email:'other@example.test'};const value=JSON.stringify({...auth,record,model:record});localStorage.setItem('pocketbase_auth',value);window.dispatchEvent(new StorageEvent('storage',{key:'pocketbase_auth',newValue:value}));});
+    await page.waitForFunction(()=>document.body.innerText.includes('담당 학생 배정 설정'));assert.equal(studentQueries.length,oldQueries);assert.equal(await page.$eval('body',e=>e.innerText.includes('검증 학생')||e.innerText.includes('검증 담당자')),false);
+    await page.screenshot({path:path.join(output,'academy-account-switch.png'),fullPage:true});
+   }
+   if(role==='consultant'){await page.waitForFunction(()=>document.body.innerText.includes('담당 학생 배정 설정'));assert.equal(studentQueries.length,0);await page.evaluate(()=>window.dispatchEvent(new CustomEvent('NAVIGATE_TO',{detail:'admin'})));await page.waitForFunction(()=>document.body.innerText.includes('학원 관리자만 이용할 수 있습니다.'));assert.equal(studentQueries.length,0);}
+   if(role==='foreign-profile'){await page.waitForFunction(()=>document.body.innerText.includes('학원 이용 권한을 확인해 주세요.'));assert.equal(studentQueries.length,0);}
+   if(role!=='admin')await page.screenshot({path:path.join(output,'academy-'+role+'.png'),fullPage:true});assert.deepEqual(errors,[]);results.push({role,studentQueries,pageErrors:errors.length,accountSwitchChecked:role==='admin'});await context.close();
+  }
+  console.log(JSON.stringify({base,results}));
+ }finally{if(browser)await browser.close();child.kill();}
+})().catch(error=>{console.error(error);process.exitCode=1;});

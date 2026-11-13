@@ -1,7 +1,9 @@
 ﻿import { useEffect, useState } from 'react';
 import { Users, FileText, Settings, LogOut, Building, Calendar, Lightbulb, BookOpen, ChevronLeft, ChevronRight, Database, Compass } from 'lucide-react';
 import { pb } from '../lib/pocketbase';
-import { resolveOrCreateProfile } from '../lib/profileLink';
+import { requireAcademyScope } from '../lib/profileLink';
+import { canManageAcademy } from '../lib/academyScope';
+import { SUPREMA_LAB_URL, APP_NAME } from '../lib/lab';
 import './Sidebar.css';
 
 interface SidebarProps {
@@ -20,13 +22,17 @@ function MenuItem({ active, icon, label, onClick, collapsed }: { active: boolean
 
 export default function Sidebar({ currentView, onNavigate }: SidebarProps) {
   const [userName, setUserName] = useState('사용자');
+  const [manager, setManager] = useState(false);
+  const [roleLabel, setRoleLabel] = useState('담당 컨설턴트');
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
       if (!pb.authStore.isValid || !pb.authStore.model) return;
       try {
-        const profile = await resolveOrCreateProfile();
+        const profile = await requireAcademyScope();
+        setManager(canManageAcademy(profile));
+        setRoleLabel(profile.role === 'consultant' ? '담당 컨설턴트' : '학원 관리자');
         if (profile?.name) setUserName(profile.name);
         else setUserName(String((pb.authStore.model as any)?.email || '사용자').split('@')[0]);
       } catch (error) {
@@ -50,10 +56,10 @@ export default function Sidebar({ currentView, onNavigate }: SidebarProps) {
           {isCollapsed ? (
             <div className="logo-icon" style={{ color: '#1e293b', fontWeight: 'bold', fontSize: '1.2rem' }}>S</div>
           ) : (
-            <img src="/logo.png" alt="수프리마 플랫폼 로고" className="brand-logo" />
+            <img src="/logo.png" alt="수프리마 랩 학원용 로고" className="brand-logo" />
           )}
         </div>
-        {!isCollapsed && <p className="subtitle" style={{ textAlign: 'center', width: '100%', display: 'block' }}>교과 탐구 • 세특 코칭 플랫폼</p>}
+        {!isCollapsed && <p className="subtitle" style={{ textAlign: 'center', width: '100%', display: 'block' }}>{APP_NAME}</p>}
         <button className="collapse-btn" onClick={() => setIsCollapsed(!isCollapsed)}>
           {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
@@ -88,8 +94,9 @@ export default function Sidebar({ currentView, onNavigate }: SidebarProps) {
 
       <div className="sidebar-footer">
         <ul>
-          <MenuItem active={currentView === 'admin'} icon={<Building size={20} />} label="관리자 설정" onClick={() => onNavigate('admin')} collapsed={isCollapsed} />
-          <MenuItem active={currentView === 'settings'} icon={<Settings size={20} />} label="환경 설정" onClick={() => onNavigate('settings')} collapsed={isCollapsed} />
+          {manager && <MenuItem active={currentView === 'admin'} icon={<Building size={20} />} label="학원 관리자" onClick={() => onNavigate('admin')} collapsed={isCollapsed} />}
+          {manager && <MenuItem active={currentView === 'settings'} icon={<Settings size={20} />} label="환경 설정" onClick={() => onNavigate('settings')} collapsed={isCollapsed} />}
+          <li><a href={SUPREMA_LAB_URL} target="_blank" rel="noreferrer">수프리마 랩 열기</a></li>
           <li className="logout" onClick={handleLogout}>
             <LogOut size={20} />
             {!isCollapsed && <span>로그아웃</span>}
@@ -100,7 +107,7 @@ export default function Sidebar({ currentView, onNavigate }: SidebarProps) {
           {!isCollapsed && (
             <div className="user-info">
               <span className="name">{userName} 님</span>
-              <span className="role">컨설턴트</span>
+              <span className="role">{roleLabel}</span>
             </div>
           )}
         </div>

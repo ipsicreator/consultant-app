@@ -3,9 +3,11 @@ import {
   ArrowLeft, FileSearch, Save, FileText, RefreshCw, Sparkles, History, ClipboardList, ChevronRight, BarChart3, Target, Printer, Upload, Send,
   Square, Plus, Trash2, Calendar, CheckCircle2, AlertCircle, X
 } from 'lucide-react';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { pb } from '../lib/pocketbase';
-import { fileToGenerativePart } from '../lib/gemini';
+import { pdfPayload, requestLabAI } from '../lib/lab';
+import { requireStudentAccess } from '../lib/profileLink';
+import { studentAnalysis, evidenceAverage } from '../lib/analysisResult';
+import { readStudentDraft, sessionIdentity, studentRecords } from '../lib/studentRecords';
+import { draftStorageKey } from '../lib/academyScope';
 import './StudentDetail.css';
 
 interface StudentDetailProps {
@@ -15,27 +17,16 @@ interface StudentDetailProps {
 
 type Analysis = {
   summary: string;
-  gradeAnalysis: { subject: string; score: number; comment: string }[];
+  gradeAnalysis: { subject: string; score: number | null; comment: string }[];
   strengths: string[];
   improvements: string[];
   finalRecordDraft: string;
   studentKeywords: string[];
 };
 
-const fallbackAnalysis = (input: string): Analysis => ({
-  summary: `입력 내용 기반 분석 결과: ${input.slice(0, 80)}...`,
-  gradeAnalysis: [
-    { subject: '국어', score: 87, comment: '핵심 문장 구성 안정적' },
-    { subject: '수학', score: 91, comment: '문제해결 논리 우수' },
-    { subject: '과학', score: 90, comment: '탐구 설계/검증 태도 우수' },
-  ],
-  strengths: ['자기주도 학습태도', '탐구 지속성', '협업 커뮤니케이션'],
-  improvements: ['활동별 정량 근거 추가', '과목 간 연결 문장 강화'],
-  finalRecordDraft: '학생은 교과 기반 탐구활동에서 주도적으로 문제를 정의하고 자료를 구조화하여, 전공 적합성을 보여주는 성과를 도출함.',
-  studentKeywords: ['문제해결', '탐구심', '협업'],
-});
-
 const StudentDetail: React.FC<StudentDetailProps> = ({ studentData, onBack }) => {
+  const generation = useRef(0), draftIdentity = useRef('');
+  const currentTask = (ticket: number, identity: string) => ticket === generation.current && identity === sessionIdentity();
   const [activeView, setActiveView] = useState<'analysis' | 'planner' | 'evaluation'>('analysis');
   const [activeTab, setActiveTab] = useState<'input' | 'history'>('input');
   const [isScanning, setIsScanning] = useState(false);
@@ -76,16 +67,16 @@ const StudentDetail: React.FC<StudentDetailProps> = ({ studentData, onBack }) =>
   const [isSavingEval, setIsSavingEval] = useState(false);
   const [printEval, setPrintEval] = useState<any>(null);
 
-  const geminiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-  const genAI = useMemo(() => new GoogleGenerativeAI(geminiKey), [geminiKey]);
 
   const loadHistory = async () => {
     if (!studentData?.id) return;
+    const ticket = generation.current, identity = sessionIdentity();
     try {
-      const records = await pb.collection('suprima_pdf_analyses').getFullList({
+      const records = await studentRecords(studentData?.id).getFullList({
         filter: `student_id = "${studentData.id}"`,
         sort: '-created',
       });
+      if (!currentTask(ticket, identity)) return;
       setHistory(records);
       
       // Filter evaluation history
@@ -107,32 +98,36 @@ const StudentDetail: React.FC<StudentDetailProps> = ({ studentData, onBack }) =>
     }
   };
 
-  useEffect(() => {
-    if (studentData?.id) {
-      const savedInfo = JSON.parse(localStorage.getItem(`student_info_${studentData.id}`) || '{}');
-      if (savedInfo.hopeMajor) setHopeMajor(savedInfo.hopeMajor);
-      if (savedInfo.gpa) setGpa(savedInfo.gpa);
-      if (savedInfo.activities) setActivities(savedInfo.activities);
-      
-      loadHistory();
-      setActiveView('analysis');
-      setSelectedEval(null);
-      setIsEditingEval(false);
-    }
+useEffect(() => {
+    const ticket = ++generation.current, identity = sessionIdentity(); draftIdentity.current = '';
+    setInputText(''); setHopeMajor(''); setGpa(''); setActivities(''); setResult(null); setHistory([]); setEvaluationHistory([]); setPlannerRecord(null); setPlannerTasks([]); setFeedbackNote(''); setSelectedEval(null); setPrintEval(null); setUserKeywords(['', '', '']); setActiveView('analysis'); setIsEditingEval(false);
+    const load = async () => {
+      if (!studentData?.id) return;
+      try {
+        const saved = await readStudentDraft(studentData.id);
+        if (!currentTask(ticket, identity)) return;
+        setHopeMajor(saved.hopeMajor || ''); setGpa(saved.gpa || ''); setActivities(saved.activities || '');
+        draftIdentity.current = identity + ':' + studentData.id;
+        await loadHistory();
+      } catch (error) { if (currentTask(ticket, identity)) console.error('Student access unavailable', error); }
+    }; void load();
+    return () => { generation.current++; draftIdentity.current = ''; };
   }, [studentData?.id]);
 
   useEffect(() => {
-    if (studentData?.id) {
-      const info = { hopeMajor, gpa, activities };
-      localStorage.setItem(`student_info_${studentData.id}`, JSON.stringify(info));
+    const identity = sessionIdentity();
+    if (studentData?.id && identity && draftIdentity.current === identity + ':' + studentData.id) {
+      try { localStorage.setItem(draftStorageKey(identity, studentData.id), JSON.stringify({ hopeMajor, gpa, activities })); } catch { /* Draft storage may be unavailable. */ }
     }
   }, [hopeMajor, gpa, activities, studentData?.id]);
+
+
 
   useEffect(() => {
     const handleTransfer = async (e: any) => {
       if (e.detail && e.detail.title && studentData?.id) {
         try {
-          const records = await pb.collection('suprima_pdf_analyses').getFullList({
+          const records = await studentRecords(studentData?.id).getFullList({
             filter: `student_id = "${studentData.id}"`,
             sort: '-created',
           });
@@ -154,9 +149,17 @@ const StudentDetail: React.FC<StudentDetailProps> = ({ studentData, onBack }) =>
           };
           
           if (planner) {
-            await pb.collection('suprima_pdf_analyses').update(planner.id, { content });
+            if (!studentData?.id) throw new Error('학생을 먼저 선택해 주세요.');
+
+            await requireStudentAccess(studentData.id);
+
+            await studentRecords(studentData?.id).update(planner.id, { content });
           } else {
-            await pb.collection('suprima_pdf_analyses').create({
+            if (!studentData?.id) throw new Error('학생을 먼저 선택해 주세요.');
+
+            await requireStudentAccess(studentData.id);
+
+            await studentRecords(studentData?.id).create({
               student_id: studentData.id,
               content
             });
@@ -176,21 +179,14 @@ const StudentDetail: React.FC<StudentDetailProps> = ({ studentData, onBack }) =>
     const file = e.target.files?.[0];
     if (!file) return;
     
+    const ticket = generation.current, identity = sessionIdentity();
     setIsPdfLoading(true);
     try {
-      if (!geminiKey) {
-        throw new Error("API 키가 없습니다.");
-      }
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-      const filePart = await fileToGenerativePart(file);
-      
-      const prompt = `이 PDF 문서는 학생의 학교생활기록부(또는 성적, 활동 기록) 문서 파일입니다.
-이 문서 안에 적혀 있는 '교과학습발달상황(세부능력 및 특기사항 포함)', '창의적 체험활동상황(자율/동아리/진로)', '행동특성 및 종합의견' 등의 모든 텍스트를 빠짐없이 추출하여 반환해 주세요.
-PDF의 양식이나 표는 무시하고, 내용(글) 자체만 모두 이어서 출력하면 됩니다.`;
-
-      const result = await model.generateContent([prompt, filePart]);
-      const extractedText = result.response.text();
-      
+      if (studentData?.id) await requireStudentAccess(studentData.id);
+      const extracted = await requestLabAI('extract-student-text', { file: await pdfPayload(file) });
+      if (typeof extracted.text !== 'string') throw new Error('PDF 추출 응답을 확인해 주세요.');
+      if (!currentTask(ticket, identity)) return;
+      const extractedText = extracted.text;
       setInputText(prev => prev + (prev ? '\n\n' : '') + extractedText.trim());
     } catch (error) {
       console.error('PDF extraction error:', error);
@@ -207,59 +203,20 @@ PDF의 양식이나 표는 무시하고, 내용(글) 자체만 모두 이어서 
       return;
     }
 
+    const ticket = generation.current, identity = sessionIdentity();
     setIsScanning(true);
     try {
-      if (!geminiKey) {
-        setResult(fallbackAnalysis(inputText));
-        return;
-      }
-
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-      const prompt = `다음 학생의 학업 정보와 학생부 텍스트를 분석해 JSON으로 반환하세요.
-희망 전공: ${hopeMajor}
-내신 등급: ${gpa} (비어있거나 부족한 경우 학생부 내용에서 추출해 채우세요)
-비교과 활동: ${activities} (비어있거나 부족한 경우 학생부 내용에서 추출해 채우세요)
-학생부 내용: ${inputText}
-
-요청:
-1. summary: 종합 요약
-2. gradeAnalysis: 교과 분석 [{subject,score,comment}]
-3. strengths: 강점 리스트 []
-4. improvements: 보완점 리스트 []
-5. finalRecordDraft: 세특 문장 초안
-6. studentKeywords: 이 학생의 탐구활동 소재로 적합한 핵심 키워드 최대 3개 []
-7. detectedGpa: 학생부 내용에서 추출해 낸 성적 등급 요약 (예: 국어 1등급, 영어 2등급, 수학 2등급 또는 국1 영2 수2 과1 형태로 간결하게)
-8. detectedActivities: 학생부 내용에서 추출해 낸 주요 비교과 활동 요약 (예: 수학동아리 부장, 과학 경시대회 참가 등 간략한 1줄)
-
-응답 형식 (JSON):
-{
-  "summary": "...",
-  "gradeAnalysis": [...],
-  "strengths": [...],
-  "improvements": [...],
-  "finalRecordDraft": "...",
-  "studentKeywords": ["키워드1", "키워드2", "키워드3"],
-  "detectedGpa": "...",
-  "detectedActivities": "..."
-}`;
-      const gen = await model.generateContent(prompt);
-      const text = (await gen.response).text().replace(/```json|```/g, '').trim();
-      const parsed = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] || text);
-
-      setResult({
-        summary: parsed.summary || fallbackAnalysis(inputText).summary,
-        gradeAnalysis: Array.isArray(parsed.gradeAnalysis) ? parsed.gradeAnalysis : fallbackAnalysis(inputText).gradeAnalysis,
-        strengths: Array.isArray(parsed.strengths) ? parsed.strengths : fallbackAnalysis(inputText).strengths,
-        improvements: Array.isArray(parsed.improvements) ? parsed.improvements : fallbackAnalysis(inputText).improvements,
-        finalRecordDraft: parsed.finalRecordDraft || fallbackAnalysis(inputText).finalRecordDraft,
-        studentKeywords: Array.isArray(parsed.studentKeywords) ? parsed.studentKeywords.slice(0, 3) : fallbackAnalysis(inputText).studentKeywords,
-      });
+      if (studentData?.id) await requireStudentAccess(studentData.id);
+      const parsed = await requestLabAI('analyze-student-text', { inputText, hopeMajor, gpa, activities });
+      if (!currentTask(ticket, identity)) return;
+      setResult(studentAnalysis(parsed));
       if (parsed.detectedGpa && !gpa) setGpa(parsed.detectedGpa);
       if (parsed.detectedActivities && !activities) setActivities(parsed.detectedActivities);
       setUserKeywords(['', '', '']);
     } catch (e) {
       console.error(e);
-      setResult(fallbackAnalysis(inputText));
+      setResult(null);
+      alert(e instanceof Error ? e.message : '분석을 완료하지 못했습니다. 다시 시도해 주세요.');
     } finally {
       setIsScanning(false);
     }
@@ -269,7 +226,11 @@ PDF의 양식이나 표는 무시하고, 내용(글) 자체만 모두 이어서 
     if (!studentData?.id || !result) return;
     setIsSaving(true);
     try {
-      await pb.collection('suprima_pdf_analyses').create({ student_id: studentData.id, content: result });
+      if (!studentData?.id) throw new Error('학생을 먼저 선택해 주세요.');
+
+      await requireStudentAccess(studentData.id);
+
+      await studentRecords(studentData?.id).create({ student_id: studentData.id, content: result });
       await loadHistory();
       alert('분석 결과가 저장되었습니다.');
     } catch (e: any) {
@@ -285,7 +246,7 @@ PDF의 양식이나 표는 무시하고, 내용(글) 자체만 모두 이어서 
       student: result.studentKeywords,
       user: userKeywords.filter(k => k.trim()),
     };
-    sessionStorage.setItem('exploration_keywords', JSON.stringify(data));
+    sessionStorage.setItem('exploration_keywords:' + sessionIdentity() + ':' + (studentData?.id || 'unassigned'), JSON.stringify(data));
     
     // Dispatch a custom event to navigate globally
     window.dispatchEvent(new CustomEvent('NAVIGATE_TO', { detail: 'exploration' }));
@@ -316,11 +277,19 @@ PDF의 양식이나 표는 무시하고, 내용(글) 자체만 모두 이어서 
     try {
       if (selectedEval && isEditingEval) {
         // Edit existing
-        await pb.collection('suprima_pdf_analyses').update(selectedEval.id, { content });
+        if (!studentData?.id) throw new Error('학생을 먼저 선택해 주세요.');
+
+        await requireStudentAccess(studentData.id);
+
+        await studentRecords(studentData?.id).update(selectedEval.id, { content });
         alert('평가서가 수정되었습니다.');
       } else {
         // Create new
-        await pb.collection('suprima_pdf_analyses').create({
+        if (!studentData?.id) throw new Error('학생을 먼저 선택해 주세요.');
+
+        await requireStudentAccess(studentData.id);
+
+        await studentRecords(studentData?.id).create({
           student_id: studentData.id,
           content
         });
@@ -340,7 +309,11 @@ PDF의 양식이나 표는 무시하고, 내용(글) 자체만 모두 이어서 
   const handleDeleteEvaluation = async (id: string) => {
     if (window.confirm('이 평가서를 정말로 삭제하시겠습니까?')) {
       try {
-        await pb.collection('suprima_pdf_analyses').delete(id);
+        if (!studentData?.id) throw new Error('학생을 먼저 선택해 주세요.');
+
+        await requireStudentAccess(studentData.id);
+
+        await studentRecords(studentData?.id).delete(id);
         alert('평가서가 삭제되었습니다.');
         setSelectedEval(null);
         await loadHistory();
@@ -384,9 +357,13 @@ PDF의 양식이나 표는 무시하고, 내용(글) 자체만 모두 이어서 
     };
     try {
       if (plannerRecord) {
-        await pb.collection('suprima_pdf_analyses').update(plannerRecord.id, { content });
+        if (!studentData?.id) throw new Error('학생을 먼저 선택해 주세요.');
+
+        await requireStudentAccess(studentData.id);
+
+        await studentRecords(studentData?.id).update(plannerRecord.id, { content });
       } else {
-        const newRecord = await pb.collection('suprima_pdf_analyses').create({
+        const newRecord = await studentRecords(studentData?.id).create({
           student_id: studentData.id,
           content
         });
@@ -394,7 +371,7 @@ PDF의 양식이나 표는 무시하고, 내용(글) 자체만 모두 이어서 
       }
       
       // Reload history to keep records updated
-      const records = await pb.collection('suprima_pdf_analyses').getFullList({
+      const records = await studentRecords(studentData?.id).getFullList({
         filter: `student_id = "${studentData.id}"`,
         sort: '-created',
       });
@@ -446,9 +423,7 @@ PDF의 양식이나 표는 무시하고, 내용(글) 자체만 모두 이어서 
     }
   };
 
-  const avg = result?.gradeAnalysis?.length
-    ? Math.round(result.gradeAnalysis.reduce((a, b) => a + Number(b.score || 0), 0) / result.gradeAnalysis.length)
-    : 0;
+  const avg = result ? evidenceAverage(result.gradeAnalysis) : null;
 
   return (
     <div className="student-detail fade-in">
@@ -625,7 +600,7 @@ PDF의 양식이나 표는 무시하고, 내용(글) 자체만 모두 이어서 
                 </div>
 
                 <div className="kpi-grid">
-                  <div className="kpi-card"><BarChart3 size={16} /><span>평균점수</span><strong>{avg}</strong></div>
+                  <div className="kpi-card"><BarChart3 size={16} /><span>기록 수치 평균</span><strong>{avg ?? '—'}</strong></div>
                   <div className="kpi-card"><Target size={16} /><span>강점 수</span><strong>{result.strengths.length}</strong></div>
                   <div className="kpi-card"><Target size={16} /><span>보완 수</span><strong>{result.improvements.length}</strong></div>
                 </div>
@@ -635,7 +610,7 @@ PDF의 양식이나 표는 무시하고, 내용(글) 자체만 모두 이어서 
                   <table>
                     <thead><tr><th>과목</th><th>점수</th><th>코멘트</th></tr></thead>
                     <tbody>
-                      {result.gradeAnalysis.map((g, i) => <tr key={i}><td>{g.subject}</td><td>{g.score}</td><td>{g.comment}</td></tr>)}
+                      {result.gradeAnalysis.map((g, i) => <tr key={i}><td>{g.subject}</td><td>{g.score ?? '—'}</td><td>{g.comment}</td></tr>)}
                     </tbody>
                   </table>
                 </div>
