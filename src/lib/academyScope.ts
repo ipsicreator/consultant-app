@@ -6,7 +6,7 @@ export function filterValue(value: string): string { return JSON.stringify(value
 export function profileScope(value: unknown, userId: string): AcademyScope {
   if (!value || typeof value !== 'object' || Array.isArray(value) || !userId) throw new Error('학원 계정 연결을 확인해 주세요.');
   const profile = value as Record<string, unknown>;
-  const linked = profile.admin_id === userId || profile.user === userId;
+  const linked = profile.user === userId;
   if (!linked) throw new Error('로그인 계정과 학원 프로필이 일치하지 않습니다.');
   if (!['master', 'admin', 'consultant'].includes(String(profile.role))) throw new Error('허용된 학원 역할이 없습니다.');
   if (typeof profile.academy_id !== 'string' || !profile.academy_id.trim() || typeof profile.id !== 'string') throw new Error('학원 소속을 관리자가 설정해야 합니다.');

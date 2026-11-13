@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Bell, UserPlus, ArrowRight, BookOpen, Clock, X, Save, Edit3, FileText } from 'lucide-react';
 import { pb } from '../lib/pocketbase';
+import { STUDENT_CONSULTANT_FIELD } from '../lib/assignmentConfig';
 import { requireAcademyScope, scopedStudents, requireStudentAccess } from '../lib/profileLink';
 import { canManageAcademy, studentFilter } from '../lib/academyScope';
 import './Dashboard.css';
@@ -57,8 +58,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectStudent }) => {
 
     try {
       const scope = await requireAcademyScope();
-      studentFilter(scope, import.meta.env.VITE_STUDENT_CONSULTANT_FIELD);
-      const assignmentField = import.meta.env.VITE_STUDENT_CONSULTANT_FIELD;
+      studentFilter(scope, STUDENT_CONSULTANT_FIELD);
+      const assignmentField = STUDENT_CONSULTANT_FIELD;
       const createdRecord = await pb.collection('suprima_students').create({
         ...(!canManageAcademy(scope) && assignmentField ? { [assignmentField]: scope.profileId } : {}),
         name: newStudent.name,

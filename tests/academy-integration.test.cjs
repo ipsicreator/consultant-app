@@ -23,13 +23,13 @@ test('managers remain academy scoped and consultants need a real assignment rela
 });
 test('profile lookup never creates accounts or chooses another academy license', async () => {
   const calls = [], pb = { authStore: { isValid: true, model: { id: 'user-a', collectionName: 'users' } }, collection: name => { calls.push(name); return { getList: async () => ({ totalItems: 1, items: [{ id: 'profile-a', user: 'user-a', academy_id: 'academy-a', role: 'admin' }] }), create: () => { throw Error('must not create'); } }; } };
-  const api = load('src/lib/profileLink.ts', { './pocketbase': { pb }, './academyScope': scope });
+  const api = load('src/lib/profileLink.ts', { './pocketbase': { pb }, './academyScope': scope, './assignmentConfig': {STUDENT_CONSULTANT_FIELD:'assigned_consultant'} });
   assert.equal((await api.requireAcademyScope()).academyId, 'academy-a'); assert.deepEqual(calls, ['suprima_profiles']);
   pb.authStore.model.collectionName = '_superusers'; await assert.rejects(api.requireAcademyScope(), /일반 학원/);
 });
 test('profile permission failures cannot trigger broad fallback queries', async () => {
   let requests = 0; const pb = { authStore: { isValid: true, model: { id: 'user-a', collectionName: 'users' } }, collection: () => ({ getList: async () => { requests++; throw { status: 403 }; } }) };
-  const api = load('src/lib/profileLink.ts', { './pocketbase': { pb }, './academyScope': scope }); await assert.rejects(api.requireAcademyScope()); assert.equal(requests, 1);
+  const api = load('src/lib/profileLink.ts', { './pocketbase': { pb }, './academyScope': scope, './assignmentConfig': {STUDENT_CONSULTANT_FIELD:'assigned_consultant'} }); await assert.rejects(api.requireAcademyScope()); assert.equal(requests, 1);
 });
 test('lab address accepts production and local tests while rejecting unsafe components', () => {
   assert.equal(contract.labBaseUrl(), 'https://suprema-lab.vercel.app'); assert.equal(contract.labBaseUrl('http://127.0.0.1:3000'), 'http://127.0.0.1:3000');
@@ -53,19 +53,28 @@ test('analysis does not invent scores or convert missing grades into zero', () =
   const result = analysis.studentAnalysis({ summary: '자료 확인', gradeAnalysis: [{ subject: '수학', score: null }, { subject: '국어', score: 0 }] }); assert.equal(result.gradeAnalysis[0].score, null); assert.equal(analysis.evidenceAverage(result.gradeAnalysis), 0); assert.equal(analysis.evidenceAverage([]), null); assert.deepEqual(analysis.studentAnalysis({ summary: '자료 없음' }).gradeAnalysis, []); assert.throws(() => analysis.studentAnalysis({}));
 });
 
-test('ambiguous profiles are rejected and both legacy link schemas get narrow fallbacks', async () => {
-  const profile = { id: 'profile-a', user: 'user-a', academy_id: 'academy-a', role: 'admin' };
+test('only the canonical user relation grants a unique academy profile; creator text cannot authenticate', async () => {
+  const profile = { id: 'profile-a', user: 'user-a', admin_id: 'shared-creator', academy_id: 'academy-a', role: 'admin' };
   let mode = 'duplicate', requests = 0;
-  const pb = { authStore: { isValid: true, model: { id: 'user-a', collectionName: 'users' } }, collection: () => ({ getList: async (_page, _size, options) => { requests++; if (mode === 'duplicate') return { totalItems: 2, items: [profile, { ...profile, id: 'profile-b' }] }; if (options.filter.startsWith('(')) throw { status: 400 }; if (options.filter.startsWith(mode === 'user-only' ? 'admin_id=' : 'user=')) throw { status: 400 }; return { totalItems: 1, items: [profile] }; } }) };
-  const api = load('src/lib/profileLink.ts', { './pocketbase': { pb }, './academyScope': scope });
+  const pb = { authStore: { isValid: true, model: { id: 'user-a', collectionName: 'users' } }, collection: () => ({ getList: async (_page, _size, options) => {
+    requests++; assert.equal(options.filter, 'user="user-a"');
+    if (mode === 'duplicate') return { totalItems: 2, items: [profile, {...profile,id:'profile-b'}] };
+    if (mode === 'missing') throw {status:400};
+    if (mode === 'creator-only') return { totalItems:1, items:[{...profile,user:'someone-else',admin_id:'user-a'}] };
+    return { totalItems:1,items:[profile] };
+  } }) };
+  const api = load('src/lib/profileLink.ts', { './pocketbase': { pb }, './academyScope': scope, './assignmentConfig': {STUDENT_CONSULTANT_FIELD:'assigned_consultant'} });
   await assert.rejects(api.requireAcademyScope(), /하나로/);
-  for (const schema of ['user-only', 'admin-only']) { mode = schema; requests = 0; assert.equal((await api.requireAcademyScope()).profileId, 'profile-a'); assert.equal(requests, 3); }
+  mode='valid'; assert.equal((await api.requireAcademyScope()).profileId,'profile-a');
+  mode='creator-only'; await assert.rejects(api.requireAcademyScope(), /일치/);
+  mode='missing'; requests=0; await assert.rejects(api.requireAcademyScope()); assert.equal(requests,1);
+  assert.throws(()=>scope.profileScope({...profile,user:undefined,admin_id:'user-a'},'user-a'),/일치/);
 });
 
 test('student history authorizes before querying and validates every returned owner', async () => {
   const events = [], pb = { authStore: { isValid: true, model: { id: 'user-a', collectionName: 'users' } }, collection: () => ({ getFullList: async options => { events.push('read'); assert.equal(options.filter, 'student_id="student-a"'); return [{ id: 'record-b', student_id: 'student-b' }]; } }) };
   let denied = true;
-  const api = load('src/lib/studentRecords.ts', { './pocketbase': { pb }, './profileLink': { requireStudentAccess: async () => { events.push('authorize'); if (denied) throw Error('denied'); } }, './academyScope': scope });
+  const api = load('src/lib/studentRecords.ts', { './pocketbase': { pb }, './profileLink': { requireStudentAccess: async () => { events.push('authorize'); if (denied) throw Error('denied'); } }, './academyScope': scope, './assignmentConfig': {STUDENT_CONSULTANT_FIELD:'assigned_consultant'} });
   await assert.rejects(api.studentRecords('student-a').getFullList(), /denied/); assert.deepEqual(events, ['authorize']);
   denied = false; events.length = 0; await assert.rejects(api.studentRecords('student-a').getFullList(), /선택한 학생/); assert.deepEqual(events, ['authorize', 'read']);
 });
@@ -73,20 +82,20 @@ test('student history authorizes before querying and validates every returned ow
 test('cross-student history update and deletion are rejected before mutation', async () => {
   let writes = 0;
   const pb = { authStore: { isValid: true, model: { id: 'user-a', collectionName: 'users' } }, collection: () => ({ getOne: async () => ({ id: 'record-b', student_id: 'student-b' }), update: async () => writes++, delete: async () => writes++ }) };
-  const api = load('src/lib/studentRecords.ts', { './pocketbase': { pb }, './profileLink': { requireStudentAccess: async () => {} }, './academyScope': scope });
+  const api = load('src/lib/studentRecords.ts', { './pocketbase': { pb }, './profileLink': { requireStudentAccess: async () => {} }, './academyScope': scope, './assignmentConfig': {STUDENT_CONSULTANT_FIELD:'assigned_consultant'} });
   await assert.rejects(api.studentRecords('student-a').update('record-b', { content: {} }), /선택한 학생/); await assert.rejects(api.studentRecords('student-a').delete('record-b'), /선택한 학생/); assert.equal(writes, 0);
 });
 
 test('account switches invalidate in-flight student reads and cache keys stay per user', async () => {
   const pb = { authStore: { isValid: true, model: { id: 'user-a', collectionName: 'users' } }, collection: () => ({ getFullList: async () => { pb.authStore.model.id = 'user-b'; return [{ student_id: 'student-a' }]; } }) };
-  const api = load('src/lib/studentRecords.ts', { './pocketbase': { pb }, './profileLink': { requireStudentAccess: async () => {} }, './academyScope': scope });
+  const api = load('src/lib/studentRecords.ts', { './pocketbase': { pb }, './profileLink': { requireStudentAccess: async () => {} }, './academyScope': scope, './assignmentConfig': {STUDENT_CONSULTANT_FIELD:'assigned_consultant'} });
   await assert.rejects(api.studentRecords('student-a').getFullList(), /계정이 변경/); assert.notEqual(scope.draftStorageKey('user-a', 'student-a'), scope.draftStorageKey('user-b', 'student-a'));
 });
 
 test('local drafts cannot be read before student authorization', async () => {
   const original = global.localStorage; let reads = 0;
   global.localStorage = { getItem: () => { reads++; return '{}'; } };
-  try { const pb = { authStore: { isValid: true, model: { id: 'user-a', collectionName: 'users' } } }, api = load('src/lib/studentRecords.ts', { './pocketbase': { pb }, './profileLink': { requireStudentAccess: async () => { throw Error('denied'); } }, './academyScope': scope }); await assert.rejects(api.readStudentDraft('student-a'), /denied/); assert.equal(reads, 0); } finally { global.localStorage = original; }
+  try { const pb = { authStore: { isValid: true, model: { id: 'user-a', collectionName: 'users' } } }, api = load('src/lib/studentRecords.ts', { './pocketbase': { pb }, './profileLink': { requireStudentAccess: async () => { throw Error('denied'); } }, './academyScope': scope, './assignmentConfig': {STUDENT_CONSULTANT_FIELD:'assigned_consultant'} }); await assert.rejects(api.readStudentDraft('student-a'), /denied/); assert.equal(reads, 0); } finally { global.localStorage = original; }
 });
 
 test('admission decisions preserve exact lab identity and held judgement', async () => {
