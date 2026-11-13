@@ -1,3 +1,5 @@
+import StudentActivities from './StudentActivities';
+import ActivityResources from './ActivityResources';
 import React, { useMemo, useState } from 'react';
 import { Lightbulb, BookOpen, Sparkles, Send, RefreshCw, X, ArrowLeft, Calendar } from 'lucide-react';
 import { requestLabAI } from '../lib/lab';
@@ -79,6 +81,8 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
 
   return (
     <div className="explore-wrap fade-in">
+      <ActivityResources/>
+      {studentData?.id && <StudentActivities key={studentData.id} studentId={studentData.id}/>}
       
       {/* 1층 - Top Title & Subject Tabs */}
       <div className="top-layer">

@@ -3,7 +3,7 @@ import { BookOpen, FlaskConical, Scale } from 'lucide-react';
 import './InquiryGuide.css';
 
 const InquiryGuide: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'science' | 'social'>('science');
+  const [activeTab, setActiveTab] = useState<'science' | 'social' | 'ai'>('science');
 
   return (
     <div className="inquiry-guide-container animate-fade-in">
@@ -33,10 +33,12 @@ const InquiryGuide: React.FC = () => {
             <Scale size={18} />
             사회 교과 탐구 가이드
           </button>
+          <button className={`tab-btn ${activeTab === 'ai' ? 'active' : ''}`} onClick={() => setActiveTab('ai')}>AI 데이터 분석·프롬프트</button>
         </div>
       </div>
 
       <div className="guide-content glass-panel">
+        {activeTab === 'ai' && <iframe src="https://jinhak.esteacher.kr/ai_prompt.html" title="AI 데이터 분석·프롬프트 가이드" className="guide-iframe" referrerPolicy="no-referrer"/>}
         {activeTab === 'science' && (
           <iframe 
             src="https://jinhak.esteacher.kr/sciencetam.html" 

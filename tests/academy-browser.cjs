@@ -10,6 +10,14 @@ const assert=require('node:assert/strict'),fs=require('node:fs/promises'),path=r
    const context=await browser.createBrowserContext(),page=await context.newPage();await page.setViewport({width:1440,height:1000});const errors=[],studentQueries=[],assignmentWrites=[];page.on('pageerror',error=>errors.push(error.message));
    let profile={id:'profile00000001',admin_id:role==='foreign-profile'?'other0000000001':'user00000000001',user:role==='foreign-profile'?'other0000000001':'user00000000001',academy_id:'academy-a',role:role==='consultant'?'consultant':'admin',name:'검증 담당자'};
    await page.setRequestInterception(true);page.on('request',request=>{const url=new URL(request.url());
+    if(url.pathname==='/api/academy/activities'){
+     const headers={'Access-Control-Allow-Origin':base,'Access-Control-Allow-Methods':'GET,POST,OPTIONS','Access-Control-Allow-Headers':'Authorization,Content-Type'};
+     if(request.method()==='OPTIONS'){void request.respond({status:204,headers});return;}
+     const kind=url.searchParams.get('kind')||'exploration';
+     const item={id:'a'.repeat(24),kind,title:kind+' 검증 기록',content:'학생이 직접 작성한 활동입니다.',activityDate:'2026-11-14',version:2,created:'2026-11-14T00:00:00Z',updated:'2026-11-14T00:01:00Z'};
+     const body=request.method()==='POST'?{linked:true,studentName:'검증 학생'}:{items:[item],page:1,totalPages:1,totalItems:1};
+     void request.respond({status:200,headers,contentType:'application/json',body:JSON.stringify(body)});return;
+    }
     if(url.pathname==='/api/academy/assignments'){
      const headers={'Access-Control-Allow-Origin':base,'Access-Control-Allow-Methods':'GET,POST,PATCH,OPTIONS','Access-Control-Allow-Headers':'Authorization,Content-Type'};
      if(request.method()==='OPTIONS'){void request.respond({status:204,headers});return;}
@@ -32,7 +40,11 @@ const match=url.pathname.match(/\/api\/collections\/([^/]+)\/records(?:\/([^/]+)
     await page.waitForFunction(()=>document.body.innerText.includes('다른 학원 학생'));assert.ok(studentQueries.length>oldQueries);assert.ok(studentQueries.slice(oldQueries).every(filter=>filter==='academy_id="academy-b" && assigned_consultant="profile00000002"'));assert.equal(await page.$eval('body',e=>e.innerText.includes('검증 학생')||e.innerText.includes('검증 담당자')),false);
     await page.screenshot({path:path.join(output,'academy-account-switch.png'),fullPage:true});
    }
-   if(role==='consultant'){await page.waitForFunction(()=>document.body.innerText.includes('검증 학생'));assert.ok(studentQueries.length>0);assert.ok(studentQueries.every(filter=>filter==='academy_id="academy-a" && assigned_consultant="profile00000001"'));const beforeAdmin=studentQueries.length;await page.evaluate(()=>window.dispatchEvent(new CustomEvent('NAVIGATE_TO',{detail:'admin'})));await page.waitForFunction(()=>document.body.innerText.includes('학원 관리자만 이용할 수 있습니다.'));assert.equal(studentQueries.length,beforeAdmin);}
+   if(role==='consultant'){await page.waitForFunction(()=>document.body.innerText.includes('검증 학생'));assert.ok(studentQueries.length>0);assert.ok(studentQueries.every(filter=>filter==='academy_id="academy-a" && assigned_consultant="profile00000001"'));await page.click('.primary-action');await page.waitForFunction(()=>document.body.innerText.includes('학생 개인 활동 기록')&&document.body.innerText.includes('exploration 검증 기록'));
+    await page.evaluate(()=>Array.from(document.querySelectorAll('button')).find(b=>b.textContent.trim()==='독서').click());await page.waitForFunction(()=>document.body.innerText.includes('reading 검증 기록'));
+    await page.evaluate(()=>Array.from(document.querySelectorAll('summary')).find(b=>b.textContent==='개인 계정 연결 등록').click());await page.type('details input','a'.repeat(32));await page.evaluate(()=>Array.from(document.querySelectorAll('button')).find(b=>b.textContent.trim()==='연결 등록').click());await page.waitForFunction(()=>document.body.innerText.includes('개인 계정을 학생 명단에 연결했습니다.'));await page.screenshot({path:path.join(output,'academy-student-activities.png'),fullPage:true});
+    await page.evaluate(()=>window.dispatchEvent(new CustomEvent('NAVIGATE_TO',{detail:'inquiry_guide'})));await page.waitForFunction(()=>document.body.innerText.includes('AI 데이터 분석·프롬프트'));await page.evaluate(()=>Array.from(document.querySelectorAll('button')).find(b=>b.textContent.trim()==='AI 데이터 분석·프롬프트').click());await page.waitForSelector('iframe[src="https://jinhak.esteacher.kr/ai_prompt.html"]');assert.ok(await page.$('button.tab-btn'));
+    const beforeAdmin=studentQueries.length;await page.evaluate(()=>window.dispatchEvent(new CustomEvent('NAVIGATE_TO',{detail:'admin'})));await page.waitForFunction(()=>document.body.innerText.includes('학원 관리자만 이용할 수 있습니다.'));assert.equal(studentQueries.length,beforeAdmin);}
    if(role==='foreign-profile'){await page.waitForFunction(()=>document.body.innerText.includes('학원 이용 권한을 확인해 주세요.'));assert.equal(studentQueries.length,0);}
    if(role!=='admin')await page.screenshot({path:path.join(output,'academy-'+role+'.png'),fullPage:true});assert.deepEqual(errors,[]);results.push({role,studentQueries,pageErrors:errors.length,accountSwitchChecked:role==='admin'});await context.close();
   }

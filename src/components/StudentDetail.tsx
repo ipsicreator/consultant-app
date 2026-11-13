@@ -1,3 +1,4 @@
+import StudentActivities from './StudentActivities';
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import {
   ArrowLeft, FileSearch, Save, FileText, RefreshCw, Sparkles, History, ClipboardList, ChevronRight, BarChart3, Target, Printer, Upload, Send,
@@ -32,7 +33,7 @@ const StudentDetail: React.FC<StudentDetailProps> = ({ studentData, onBack }) =>
   const [isScanning, setIsScanning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
-  
+
   // Input fields (initialized from localStorage if available)
   const [inputText, setInputText] = useState('');
   const [hopeMajor, setHopeMajor] = useState('');
@@ -42,7 +43,7 @@ const StudentDetail: React.FC<StudentDetailProps> = ({ studentData, onBack }) =>
   // Results & History list (contains raw pb records)
   const [result, setResult] = useState<Analysis | null>(null);
   const [history, setHistory] = useState<any[]>([]);
-  
+
   // User Keywords
   const [userKeywords, setUserKeywords] = useState(['', '', '']);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -78,11 +79,11 @@ const StudentDetail: React.FC<StudentDetailProps> = ({ studentData, onBack }) =>
       });
       if (!currentTask(ticket, identity)) return;
       setHistory(records);
-      
+
       // Filter evaluation history
       const evals = records.filter(r => r.content?.dataType === 'evaluation');
       setEvaluationHistory(evals);
-      
+
       // Load planner data
       const planner = records.find(r => r.content?.dataType === 'planner');
       setPlannerRecord(planner);
@@ -134,7 +135,7 @@ useEffect(() => {
           const planner = records.find(r => r.content?.dataType === 'planner');
           const currentTasks = planner?.content?.tasks || [];
           const currentNote = planner?.content?.consultantNote || '';
-          
+
           const newTask = {
             id: Date.now().toString() + Math.random().toString(),
             text: `[탐구활동] ${e.detail.title}`,
@@ -147,7 +148,7 @@ useEffect(() => {
             tasks: updatedTasks,
             consultantNote: currentNote
           };
-          
+
           if (planner) {
             if (!studentData?.id) throw new Error('학생을 먼저 선택해 주세요.');
 
@@ -178,7 +179,7 @@ useEffect(() => {
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     const ticket = generation.current, identity = sessionIdentity();
     setIsPdfLoading(true);
     try {
@@ -239,7 +240,7 @@ useEffect(() => {
       setIsSaving(false);
     }
   };
-  
+
   const handleGoToExploration = () => {
     if (!result) return;
     const data = {
@@ -247,7 +248,7 @@ useEffect(() => {
       user: userKeywords.filter(k => k.trim()),
     };
     sessionStorage.setItem('exploration_keywords:' + sessionIdentity() + ':' + (studentData?.id || 'unassigned'), JSON.stringify(data));
-    
+
     // Dispatch a custom event to navigate globally
     window.dispatchEvent(new CustomEvent('NAVIGATE_TO', { detail: 'exploration' }));
   };
@@ -369,7 +370,7 @@ useEffect(() => {
         });
         setPlannerRecord(newRecord);
       }
-      
+
       // Reload history to keep records updated
       const records = await studentRecords(studentData?.id).getFullList({
         filter: `student_id = "${studentData.id}"`,
@@ -444,14 +445,15 @@ useEffect(() => {
           <button className={activeView === 'evaluation' ? 'active' : ''} onClick={() => setActiveView('evaluation')}><FileText size={16} /> 3. 성장 평가서</button>
         </div>
       </header>
+      {studentData?.id && <StudentActivities key={studentData.id} studentId={studentData.id}/>}
 
       {activeView === 'analysis' && (
         <div className="detail-grid">
           {/* Left panel */}
           <section className="scan-section glass-panel">
             <div className="sub-tabs-container" style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
-              <button 
-                className={`sub-tab-btn ${activeTab === 'input' ? 'active' : ''}`} 
+              <button
+                className={`sub-tab-btn ${activeTab === 'input' ? 'active' : ''}`}
                 onClick={() => setActiveTab('input')}
                 style={{
                   background: activeTab === 'input' ? 'rgba(255,255,255,0.08)' : 'transparent',
@@ -464,8 +466,8 @@ useEffect(() => {
               >
                 <Sparkles size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> 정보 입력 및 스캔
               </button>
-              <button 
-                className={`sub-tab-btn ${activeTab === 'history' ? 'active' : ''}`} 
+              <button
+                className={`sub-tab-btn ${activeTab === 'history' ? 'active' : ''}`}
                 onClick={() => setActiveTab('history')}
                 style={{
                   background: activeTab === 'history' ? 'rgba(255,255,255,0.08)' : 'transparent',
@@ -478,11 +480,11 @@ useEffect(() => {
               >
                 <History size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> 분석 이력 ({history.filter(h => !h.content.dataType || h.content.dataType === 'analysis').length})</button>
             </div>
-            
+
             {activeTab === 'input' ? (
               <>
                 <div className="section-title"><ClipboardList size={20} /><h3>학생 학업 정보 기입</h3></div>
-                
+
                 <div className="info-form">
                   <div className="form-group-inline">
                     <label>희망 전공 (진로)</label>
@@ -507,14 +509,14 @@ useEffect(() => {
                   </button>
                   <span className="upload-hint">NEIS 학생부 PDF 파일을 업로드하면 AI(Gemini)가 텍스트를 정밀하게 추출합니다.</span>
                 </div>
-                
+
                 <textarea
                   className="student-textarea"
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
                   placeholder="추출된 텍스트가 이곳에 나타납니다. 직접 복사/붙여넣기도 가능합니다."
                 />
-                
+
                 <div className="actions" style={{ marginTop: '1.5rem' }}>
                   <button className="btn-primary full-width" onClick={runAnalysis} disabled={isScanning} style={{ padding: '1rem', fontSize: '1rem' }}>
                     {isScanning ? <RefreshCw className="spin" size={20} /> : <FileSearch size={20} />}
@@ -564,15 +566,15 @@ useEffect(() => {
                       {(!result.studentKeywords || result.studentKeywords.length === 0) && <span className="k-tag empty">추출된 키워드 없음</span>}
                     </div>
                   </div>
-                  
+
                   <div className="keywords-box manual-keywords">
                     <h4>사용자 추가 키워드 (직접 입력)</h4>
                     <div className="keyword-inputs">
                       {[0, 1, 2].map(idx => (
-                        <input 
+                        <input
                           key={idx}
-                          type="text" 
-                          value={userKeywords[idx]} 
+                          type="text"
+                          value={userKeywords[idx]}
                           onChange={(e) => {
                             const newK = [...userKeywords];
                             newK[idx] = e.target.value;
@@ -644,8 +646,8 @@ useEffect(() => {
             <div className="planner-tasks-panel" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {/* Task Adder Bar */}
               <div className="task-adder-bar" style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <select 
-                  value={newTaskWeek} 
+                <select
+                  value={newTaskWeek}
                   onChange={(e) => setNewTaskWeek(Number(e.target.value))}
                   style={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '6px', padding: '8px 12px' }}
                 >
@@ -654,8 +656,8 @@ useEffect(() => {
                   <option value={3}>3주차</option>
                   <option value={4}>4주차</option>
                 </select>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={newTaskText}
                   onChange={(e) => setNewTaskText(e.target.value)}
                   placeholder="이 학생의 이번 주 새로운 탐구/학습 과제를 입력해 주세요..."
@@ -678,11 +680,11 @@ useEffect(() => {
                         <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600 }}>{week}주차 과제</h4>
                         <span style={{ fontSize: '0.8rem', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '10px', marginLeft: 'auto' }}>{weekTasks.length}개</span>
                       </div>
-                      
+
                       <div className="week-tasks" style={{ display: 'grid', gap: '8px' }}>
                         {weekTasks.map((task) => (
-                          <div 
-                            key={task.id} 
+                          <div
+                            key={task.id}
                             className={`planner-task-item ${task.done ? 'done' : ''}`}
                             style={{
                               display: 'flex',
@@ -696,7 +698,7 @@ useEffect(() => {
                             }}
                           >
                             <div className="task-left" style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-                              <button 
+                              <button
                                 className="checkbox-btn"
                                 onClick={() => handleToggleTask(task.id)}
                                 style={{ background: 'transparent', border: 'none', color: task.done ? '#10b981' : '#94a3b8', cursor: 'pointer', display: 'flex', padding: 0 }}
@@ -705,13 +707,13 @@ useEffect(() => {
                               </button>
                               <span className="task-text" style={{ textDecoration: task.done ? 'line-through' : 'none', color: task.done ? 'var(--text-muted)' : '#fff', fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.text}</span>
                             </div>
-                            
+
                             <div className="task-right-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: '12px' }}>
                               {task.done && (
                                 <div className="file-attachment-section">
                                   {task.fileName ? (
-                                    <div 
-                                      className="attached-file-badge" 
+                                    <div
+                                      className="attached-file-badge"
                                       title="결과물 파일"
                                       style={{
                                         display: 'inline-flex',
@@ -727,7 +729,7 @@ useEffect(() => {
                                     >
                                       <FileText size={12} />
                                       <span style={{ maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.fileName}</span>
-                                      <button 
+                                      <button
                                         onClick={() => {
                                           const updated = plannerTasks.map(t => t.id === task.id ? { ...t, fileName: undefined } : t);
                                           setPlannerTasks(updated);
@@ -741,8 +743,8 @@ useEffect(() => {
                                     </div>
                                   ) : (
                                     <div className="file-upload-trigger">
-                                      <label 
-                                        htmlFor={`file-input-${task.id}`} 
+                                      <label
+                                        htmlFor={`file-input-${task.id}`}
                                         style={{
                                           display: 'inline-flex',
                                           alignItems: 'center',
@@ -758,8 +760,8 @@ useEffect(() => {
                                       >
                                         <Upload size={12} /> 결과물 첨부
                                       </label>
-                                      <input 
-                                        type="file" 
+                                      <input
+                                        type="file"
                                         id={`file-input-${task.id}`}
                                         onChange={(e) => handleFileChangeForTask(e, task.id)}
                                         style={{ display: 'none' }}
@@ -768,7 +770,7 @@ useEffect(() => {
                                   )}
                                 </div>
                               )}
-                              <button 
+                              <button
                                 onClick={() => handleDeleteTask(task.id)}
                                 style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: 0 }}
                                 className="delete-task-btn"
@@ -803,7 +805,7 @@ useEffect(() => {
                   placeholder="이번 달 학생의 과제 수행 상태, 집중 보완이 필요한 영역을 작성해 주세요..."
                   style={{ width: '100%', minHeight: '180px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '8px', padding: '12px', fontSize: '0.9rem', resize: 'vertical' }}
                 />
-                <button 
+                <button
                   onClick={() => savePlannerData(plannerTasks, feedbackNote).then(() => alert('피드백이 저장되었습니다.'))}
                   className="btn-primary"
                   style={{ width: '100%', marginTop: '12px', padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
@@ -822,19 +824,19 @@ useEffect(() => {
           <div className="eval-sidebar glass-panel" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '16px', overflow: 'hidden' }}>
             <div className="sidebar-header-action" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px' }}>
               <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600 }}>성장 평가서 목록</h3>
-              <button 
-                onClick={handleStartCreateEval} 
+              <button
+                onClick={handleStartCreateEval}
                 className="btn-primary"
                 style={{ padding: '6px 12px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
               >
                 <Plus size={12} /> 신규 작성
               </button>
             </div>
-            
+
             <div className="eval-list" style={{ flex: 1, overflowY: 'auto', display: 'grid', gap: '10px', alignContent: 'start' }}>
               {evaluationHistory.map((ev) => (
-                <div 
-                  key={ev.id} 
+                <div
+                  key={ev.id}
                   className={`eval-list-item ${selectedEval?.id === ev.id ? 'active' : ''}`}
                   onClick={() => {
                     setSelectedEval(ev);
@@ -850,7 +852,7 @@ useEffect(() => {
                   }}
                 >
                   <div className="eval-badge-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <span 
+                    <span
                       className={`eval-badge ${ev.content.evalType}`}
                       style={{
                         fontSize: '0.72rem',
@@ -887,12 +889,12 @@ useEffect(() => {
                 <div className="form-title" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
                   <h4 style={{ margin: 0, fontSize: '1rem', color: '#fff' }}>{selectedEval ? '성장 평가서 수정' : '새로운 성장 평가서 작성'}</h4>
                 </div>
-                
+
                 <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>평가 구분</label>
-                    <select 
-                      value={evalType} 
+                    <select
+                      value={evalType}
                       onChange={(e) => setEvalType(e.target.value as any)}
                       style={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '6px', padding: '8px 12px' }}
                     >
@@ -903,8 +905,8 @@ useEffect(() => {
                   </div>
                   <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>기준 학년/학기</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={evalSemester}
                       onChange={(e) => setEvalSemester(e.target.value)}
                       placeholder="예: 2학년 1학기"
@@ -915,8 +917,8 @@ useEffect(() => {
 
                 <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>평가서 제목</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={evalTitle}
                     onChange={(e) => setEvalTitle(e.target.value)}
                     placeholder="예: 5월 교과학습 및 탐구 보고서 평가서"
@@ -926,7 +928,7 @@ useEffect(() => {
 
                 <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>1. 학습 태도 및 수업 참여도 분석</label>
-                  <textarea 
+                  <textarea
                     value={evalAttitude}
                     onChange={(e) => setEvalAttitude(e.target.value)}
                     placeholder="학생이 수업 중 보인 적극성, 경청하는 자세, 과제 성실성 등을 구체적인 관찰 내용 중심으로 작성해 주세요..."
@@ -936,7 +938,7 @@ useEffect(() => {
 
                 <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>2. 주제 탐구 및 과제 수행 역량 평가</label>
-                  <textarea 
+                  <textarea
                     value={evalInquiry}
                     onChange={(e) => setEvalInquiry(e.target.value)}
                     placeholder="제안받은 탐구활동을 주도적으로 구현했는지, 데이터나 도서를 적절히 활용해 완성도 높은 결과물을 도출했는지 기술해 주세요..."
@@ -946,7 +948,7 @@ useEffect(() => {
 
                 <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>3. 향후 학습 및 입시 코칭 중점 계획</label>
-                  <textarea 
+                  <textarea
                     value={evalPlan}
                     onChange={(e) => setEvalPlan(e.target.value)}
                     placeholder="다음 평가 시기까지 성적을 개선하거나 세특 심화 주제를 발전시키기 위한 액션 플랜을 제시해 주세요..."
@@ -955,21 +957,21 @@ useEffect(() => {
                 </div>
 
                 <div className="form-actions" style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
-                  <button 
-                    onClick={handleSaveEvaluation} 
+                  <button
+                    onClick={handleSaveEvaluation}
                     disabled={isSavingEval}
                     className="btn-primary"
                     style={{ padding: '10px 20px' }}
                   >
                     {isSavingEval ? '저장 중...' : '평가서 저장'}
                   </button>
-                  <button 
+                  <button
                     onClick={() => {
                       setIsEditingEval(false);
                       if (!selectedEval && evaluationHistory.length > 0) {
                         setSelectedEval(evaluationHistory[0]);
                       }
-                    }} 
+                    }}
                     className="btn-secondary"
                     style={{ padding: '10px 20px' }}
                   >
@@ -981,7 +983,7 @@ useEffect(() => {
               <div className="eval-detail-view">
                 <div className="detail-header-row" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '14px' }}>
                   <div className="title-section">
-                    <span 
+                    <span
                       className={`eval-badge ${selectedEval.content.evalType}`}
                       style={{
                         fontSize: '0.75rem',
@@ -1001,23 +1003,23 @@ useEffect(() => {
                     <h3 style={{ margin: '0 0 4px 0', fontSize: '1.2rem', color: '#fff' }}>{selectedEval.content.title}</h3>
                     <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>기준 학기: {selectedEval.content.semester} · 작성일자: {selectedEval.content.date}</p>
                   </div>
-                  
+
                   <div className="action-buttons" style={{ display: 'flex', gap: '8px' }}>
-                    <button 
+                    <button
                       onClick={() => setPrintEval(selectedEval)}
                       className="icon-action-btn"
                       title="PDF 출력/인쇄"
                     >
                       <Printer size={16} />
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleStartEditEval(selectedEval)}
                       className="icon-action-btn"
                       title="수정"
                     >
                       <Save size={16} />
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleDeleteEvaluation(selectedEval.id)}
                       className="icon-action-btn"
                       style={{ color: 'var(--text-muted)' }}
@@ -1097,15 +1099,15 @@ useEffect(() => {
           }}>
             <span style={{ color: '#fff', fontSize: '0.95rem', fontWeight: 600 }}>인쇄 미리보기</span>
             <div className="print-controls" style={{ display: 'flex', gap: '10px' }}>
-              <button 
-                className="btn-primary" 
+              <button
+                className="btn-primary"
                 onClick={() => window.print()}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', fontSize: '0.88rem' }}
               >
                 <Printer size={14} /> 즉시 인쇄 (A4)
               </button>
-              <button 
-                className="btn-secondary" 
+              <button
+                className="btn-secondary"
                 onClick={() => setPrintEval(null)}
                 style={{ padding: '8px 16px', fontSize: '0.88rem' }}
               >
@@ -1113,7 +1115,7 @@ useEffect(() => {
               </button>
             </div>
           </div>
-          
+
           <div className="print-page A4 print-section" style={{
             width: '210mm',
             minHeight: '297mm',
