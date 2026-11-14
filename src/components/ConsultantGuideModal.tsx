@@ -51,6 +51,15 @@ export const ConsultantGuideModal: React.FC<ConsultantGuideModalProps> = ({ isOp
               <Download size={14} /> Word(DOCX) 다운로드
             </a>
             <a
+              href="/guides/사회과학_AI_심화탐구_컨설턴트_활용가이드.xlsx"
+              download="사회과학_AI_심화탐구_컨설턴트_활용가이드.xlsx"
+              className="btn-secondary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 12px', fontSize: '0.8rem', textDecoration: 'none', borderColor: '#10b981', color: '#10b981' }}
+              title="Excel(XLSX) 서식 파일로 다운로드"
+            >
+              <Download size={14} /> Excel(XLSX) 다운로드
+            </a>
+            <a
               href="/guides/사회과학_AI_심화탐구_컨설턴트_활용가이드.md"
               download="사회과학_AI_심화탐구_컨설턴트_활용가이드.md"
               className="btn-secondary"
