@@ -1,5 +1,5 @@
-﻿import { useEffect, useState } from 'react';
-import { Users, FileText, Settings, LogOut, Building, Calendar, Lightbulb, BookOpen, ChevronLeft, ChevronRight, Database, Compass } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Users, FileText, Settings, LogOut, Building, Calendar, Lightbulb, BookOpen, ChevronLeft, ChevronRight, Database, Compass, ExternalLink } from 'lucide-react';
 import { pb } from '../lib/pocketbase';
 import { requireAcademyScope } from '../lib/profileLink';
 import { canManageAcademy } from '../lib/academyScope';
@@ -96,7 +96,25 @@ export default function Sidebar({ currentView, onNavigate }: SidebarProps) {
         <ul>
           {manager && <MenuItem active={currentView === 'admin'} icon={<Building size={20} />} label="학원 관리자" onClick={() => onNavigate('admin')} collapsed={isCollapsed} />}
           {manager && <MenuItem active={currentView === 'settings'} icon={<Settings size={20} />} label="환경 설정" onClick={() => onNavigate('settings')} collapsed={isCollapsed} />}
-          <li><a href={SUPREMA_LAB_URL} target="_blank" rel="noreferrer">수프리마 랩 열기</a></li>
+          <li style={{ padding: 0 }}>
+            <a
+              href={SUPREMA_LAB_URL}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '10px 16px',
+                color: '#f59e0b',
+                fontWeight: 600,
+                textDecoration: 'none'
+              }}
+            >
+              <ExternalLink size={18} />
+              {!isCollapsed && <span>나의 입시멘토 바로가기</span>}
+            </a>
+          </li>
           <li className="logout" onClick={handleLogout}>
             <LogOut size={20} />
             {!isCollapsed && <span>로그아웃</span>}

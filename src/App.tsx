@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import StudentDetail from './components/StudentDetail';
@@ -74,7 +74,7 @@ function App() {
           {currentView === 'dashboard' && <Dashboard onSelectStudent={handleStudentSelect} />}
           {currentView === 'student' && <StudentDetail key={selectedStudent?.id || 'no-student'} studentData={selectedStudent} onBack={() => setCurrentView('dashboard')} />}
           {currentView === 'exploration' && <ExplorationModule key={selectedStudent?.id || 'no-student'} onBack={() => setCurrentView('dashboard')} studentData={selectedStudent} />}
-          {currentView === 'inquiry_guide' && <InquiryGuide />}
+          {currentView === 'inquiry_guide' && <InquiryGuide studentData={selectedStudent} onNavigate={handleNavigate} />}
           {currentView === 'admission' && <AdmissionModule key={selectedStudent?.id || 'no-student'} onBack={() => setCurrentView('dashboard')} studentData={selectedStudent} />}
           {currentView === 'admin' && <AcademyAdminOnly><AdminDashboard /></AcademyAdminOnly>}
           {currentView === 'planner' && <MonthlyPlanner />}

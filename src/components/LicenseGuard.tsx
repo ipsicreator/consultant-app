@@ -49,7 +49,7 @@ const LicenseGuard: React.FC<LicenseGuardProps> = ({ children }) => {
           </p>
           <div className="contact-info">
             <PhoneCall size={18} />
-            <span>고객센터: 010-2370-1077 (수프리마 랩)</span>
+            <span>대치수프리마 입시&코칭센터 : 010-2370-1077(문자전송) | 대표 : 이기욱 | suprimalab@gmail.com</span>
           </div>
           <button
             className="btn-primary"

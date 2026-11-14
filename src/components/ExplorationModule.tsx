@@ -1,7 +1,7 @@
 import StudentActivities from './StudentActivities';
 import ActivityResources from './ActivityResources';
 import React, { useMemo, useState } from 'react';
-import { Lightbulb, BookOpen, Sparkles, Send, RefreshCw, X, ArrowLeft, Calendar } from 'lucide-react';
+import { Lightbulb, BookOpen, Sparkles, Send, RefreshCw, X, ArrowLeft, Calendar, ExternalLink, Copy, Check } from 'lucide-react';
 import { requestLabAI } from '../lib/lab';
 import { requireStudentAccess } from '../lib/profileLink';
 import { sessionIdentity } from '../lib/studentRecords';
@@ -191,20 +191,16 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
               <div className="result-grid">
                 {result.map((s: Suggestion, i: number) => (
                   <article key={i} className="result-card">
+                    {/* 1. 탐구활동 제안 */}
                     <div className="rcard-header">
-                      <span className="rcard-badge">제안 {i + 1}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                        <span className="rcard-badge" style={{ background: '#8b1a1a', color: '#fff' }}>1. 탐구활동 제안</span>
+                        <span className="rcard-badge">제안 {i + 1}</span>
+                      </div>
                       <h3>{s.title}</h3>
                     </div>
                     <div className="rcard-body">
                       <p className="rcard-objective"><strong>목표:</strong> {s.objective}</p>
-                      
-                      <div className="rcard-reading">
-                        <strong><BookOpen size={16} /> 추천 독서 연계</strong>
-                        <div className="reading-box">
-                          <p className="b-title">{s.reading?.bookTitle}</p>
-                          <p className="b-reason">{s.reading?.reason}</p>
-                        </div>
-                      </div>
 
                       <div className="rcard-steps">
                         <strong>탐구 진행 단계</strong>
@@ -213,21 +209,84 @@ const ExplorationModule: React.FC<ExplorationModuleProps> = ({ studentData, onBa
                         </ol>
                       </div>
 
-                      <div className="rcard-output">
-                        <strong>최종 산출물:</strong> {s.output}
+                      {/* 2. 세특 문장 보여주기 */}
+                      <div className="rcard-output" style={{ background: 'rgba(215, 194, 165, 0.15)', border: '1px solid rgba(215, 194, 165, 0.4)', borderRadius: '10px', padding: '12px', marginTop: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                          <strong style={{ color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Sparkles size={14} /> 2. 추천 세특 문장 / 산출물
+                          </strong>
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            style={{ padding: '2px 8px', fontSize: '0.72rem', cursor: 'pointer' }}
+                            onClick={() => {
+                              if (!s.output) return;
+                              navigator.clipboard.writeText(s.output);
+                              alert('세특 문장이 복사되었습니다.');
+                            }}
+                          >
+                            복사
+                          </button>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '0.88rem', lineHeight: 1.5 }}>{s.output}</p>
                       </div>
 
-                      <button 
-                        className="btn-primary" 
-                        style={{ marginTop: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                        onClick={() => {
-                          window.dispatchEvent(new CustomEvent('TRANSFER_TO_PLANNER', { detail: { title: s.title } }));
-                          window.dispatchEvent(new CustomEvent('NAVIGATE_TO', { detail: 'planner' }));
-                        }}
-                      >
-                        <Calendar size={18} />
-                        이 주제를 플래너로 즉시 전송하기
-                      </button>
+                      {/* 3. 연계 추천 도서 · 탐구 요약 */}
+                      <div className="rcard-reading" style={{ marginTop: '14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                          <strong style={{ color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <BookOpen size={16} /> 3. 연계 추천 도서 · 탐구 요약
+                          </strong>
+                          <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>도서 DB</span>
+                        </div>
+                        <div className="reading-box" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '10px' }}>
+                          <p className="b-title" style={{ margin: '0 0 4px 0', fontWeight: 'bold', color: '#f8fafc' }}>📖 {s.reading?.bookTitle || '추천 도서 준비 중'}</p>
+                          {s.reading?.reason && <p className="b-reason" style={{ margin: 0, fontSize: '0.82rem', color: '#cbd5e1', lineHeight: 1.5 }}>{s.reading?.reason}</p>}
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '16px' }}>
+                        <button
+                          type="button"
+                          className="btn-primary"
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)', border: 'none', padding: '10px 12px', fontSize: '0.82rem', fontWeight: 700 }}
+                          onClick={() => {
+                            if (!studentData?.id) {
+                              alert('대시보드에서 매칭할 학생을 먼저 선택해 주세요.');
+                              return;
+                            }
+                            const category = genSubject.includes('과학') ? 'science' : genSubject.includes('사회') ? 'social' : genSubject.includes('정보') ? 'ai' : 'general';
+                            window.dispatchEvent(new CustomEvent('ADD_RECOMMENDATION', {
+                              detail: {
+                                category,
+                                subject: genSubject,
+                                topicTitle: s.title,
+                                bookTitle: s.reading?.bookTitle || '추천 연계 도서',
+                                bookAuthor: '',
+                                bookPublisher: '',
+                                coreConcept: s.objective || s.reading?.reason || '',
+                                setukDraft: s.output || '',
+                                consultantTip: `탐구 진행 단계: ${(s.activitySteps || []).join(' → ')}`
+                              }
+                            }));
+                          }}
+                        >
+                          <Sparkles size={15} />
+                          {studentData?.name ? `${studentData.name} 학생 추천 매칭` : '학생 추천 매칭'}
+                        </button>
+                        <button 
+                          type="button"
+                          className="btn-secondary" 
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px 12px', fontSize: '0.82rem' }}
+                          onClick={() => {
+                            window.dispatchEvent(new CustomEvent('TRANSFER_TO_PLANNER', { detail: { title: s.title } }));
+                            window.dispatchEvent(new CustomEvent('NAVIGATE_TO', { detail: 'planner' }));
+                          }}
+                        >
+                          <Calendar size={15} />
+                          플래너 전송
+                        </button>
+                      </div>
                     </div>
                   </article>
                 ))}
