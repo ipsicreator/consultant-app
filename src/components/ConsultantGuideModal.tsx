@@ -21,7 +21,8 @@ export const ConsultantGuideModal: React.FC<ConsultantGuideModalProps> = ({ isOp
     { id: 6, title: '6. 합격 3단계 세특 기재 문장 공식', icon: <FileText size={16} /> },
     { id: 7, title: '7. 컨설턴트 앱 3대 매칭 루트 실무', icon: <CheckCircle2 size={16} /> },
     { id: 8, title: '8. 플래너 연동 및 A4 추천서 인쇄', icon: <Printer size={16} /> },
-    { id: 9, title: '9. 전사 공식 풋터 및 고객 지원', icon: <BookOpen size={16} /> }
+    { id: 9, title: '9. 전사 공식 풋터 및 고객 지원', icon: <BookOpen size={16} /> },
+    { id: 10, title: '10. 학원 B2B 제안서 & 2-Track 모델', icon: <FileText size={16} /> }
   ];
 
   return (
@@ -354,6 +355,76 @@ export const ConsultantGuideModal: React.FC<ConsultantGuideModalProps> = ({ isOp
                   <p style={{ margin: '2px 0', fontSize: '0.85rem', color: '#cbd5e1' }}>대표 : 이기욱 대표컨설턴트 | 메일 : suprimalab@gmail.com | 연락처 : 010-2370-1077(문자전송)</p>
                   <p style={{ margin: '2px 0', fontSize: '0.85rem', color: '#cbd5e1' }}>소재지 : 서울시 강남구 테헤란로 326 B1F</p>
                   <p style={{ margin: '2px 0', fontSize: '0.85rem', color: '#cbd5e1' }}>네이버 밴드 : band.us/@suprima | 블로그 : blog.naver.com/gouniv_hifive | 인스타그램 : suprima_ipsicreator</p>
+                </div>
+              </div>
+            )}
+
+            {activeSection === 10 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <span style={{ color: '#f59e0b', fontSize: '0.8rem', fontWeight: 700 }}>SECTION 10</span>
+                <h3 style={{ margin: 0, fontSize: '1.4rem', color: '#fff' }}>「나의 입시멘토 + 컨설턴트 앱」 학원 전용 B2B 제안서</h3>
+                <p style={{ margin: 0, fontSize: '0.92rem', color: '#cbd5e1' }}>
+                  전국 입시·보습·어학원 대상 올인원 학원 B2B 입시 솔루션 안내 및 담당자 유무별 2-Track 맞춤 모델입니다.
+                </p>
+
+                {/* 제안서 파일 3종 즉시 다운로드 바 */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '12px 16px', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '10px' }}>
+                  <a
+                    href="/guides/대치수프리마_나의입시멘토_컨설턴트앱_B2B_제안서.docx"
+                    download="대치수프리마_나의입시멘토_컨설턴트앱_B2B_제안서.docx"
+                    className="btn-primary"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 14px', fontSize: '0.8rem', textDecoration: 'none', background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)', border: 'none' }}
+                  >
+                    <Download size={14} /> B2B 제안서 Word(DOCX)
+                  </a>
+                  <a
+                    href="/guides/대치수프리마_나의입시멘토_컨설턴트앱_B2B_제안서.xlsx"
+                    download="대치수프리마_나의입시멘토_컨설턴트앱_B2B_제안서.xlsx"
+                    className="btn-secondary"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 12px', fontSize: '0.8rem', textDecoration: 'none', borderColor: '#10b981', color: '#10b981' }}
+                  >
+                    <Download size={14} /> B2B 제안서 Excel(XLSX)
+                  </a>
+                  <a
+                    href="/guides/대치수프리마_나의입시멘토_컨설턴트앱_B2B_제안서.md"
+                    download="대치수프리마_나의입시멘토_컨설턴트앱_B2B_제안서.md"
+                    className="btn-secondary"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 12px', fontSize: '0.8rem', textDecoration: 'none' }}
+                  >
+                    <FileText size={14} /> B2B 제안서 Markdown
+                  </a>
+                </div>
+
+                {/* 2-Track 맞춤 운영 모델 카드 */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '12px' }}>
+                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(56,189,248,0.3)', borderRadius: '10px', padding: '16px' }}>
+                    <div style={{ display: 'inline-block', background: 'rgba(56,189,248,0.15)', color: '#38bdf8', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 800, marginBottom: '8px' }}>
+                      Track A: 학원 내 입시 담당자가 있는 경우
+                    </div>
+                    <h4 style={{ margin: '0 0 6px 0', fontSize: '1rem', color: '#fff' }}>시스템 라이선스 + 정기 교육형</h4>
+                    <p style={{ margin: '0 0 10px 0', fontSize: '0.82rem', color: '#cbd5e1' }}>
+                      • 컨설턴트 앱 마스터/서브 계정 부여 및 1-Click 배정 툴 제공<br />
+                      • 월 1회 최신 수시 전형 및 컷오프 변동 정기 브리핑<br />
+                      • 분기별 2028 개편 및 고교학점제 세특 지도법 심화 워크숍<br />
+                      • 카카오 도서 DB 기반 탐구 가이드북 및 설명회 PPT 제공
+                    </p>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#38bdf8' }}>비용: 상호 맞춤 협의</div>
+                  </div>
+
+                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '10px', padding: '16px' }}>
+                    <div style={{ display: 'inline-block', background: 'rgba(245,158,11,0.15)', color: '#f59e0b', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 800, marginBottom: '8px' }}>
+                      Track B: 학원 내 입시 담당자가 없는 경우
+                    </div>
+                    <h4 style={{ margin: '0 0 6px 0', fontSize: '1rem', color: '#fff' }}>전문 연구진 실전 업무대행 풀패키지</h4>
+                    <p style={{ margin: '0 0 10px 0', fontSize: '0.82rem', color: '#cbd5e1' }}>
+                      • 대치수프리마 전문 연구원이 실제 학원 담당자처럼 100% 업무 대행<br />
+                      • 학생부 등록 및 암호화 코드 연동 작업 대행<br />
+                      • 희망 전공 맞춤 심화 탐구 가설 및 필수 도서 1-Click 배정<br />
+                      • 나이스 3단계 세특 초안 검수 및 학원 로고 부착 최종 리포트 발행<br />
+                      • 학부모 입시 질의 시 전문 스크립트 서면 지원
+                    </p>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#f59e0b' }}>비용: 상호 맞춤 협의</div>
+                  </div>
                 </div>
               </div>
             )}
