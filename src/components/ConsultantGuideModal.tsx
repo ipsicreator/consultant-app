@@ -367,8 +367,16 @@ export const ConsultantGuideModal: React.FC<ConsultantGuideModalProps> = ({ isOp
                   전국 입시·보습·어학원 대상 올인원 학원 B2B 입시 솔루션 안내 및 담당자 유무별 2-Track 맞춤 모델입니다.
                 </p>
 
-                {/* 제안서 파일 3종 즉시 다운로드 바 */}
+                {/* 제안서 파일 4종(PPTX/DOCX/XLSX/MD) 즉시 다운로드 바 */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '12px 16px', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '10px' }}>
+                  <a
+                    href="/guides/대치수프리마_나의입시멘토_컨설턴트앱_B2B_제안서.pptx"
+                    download="대치수프리마_나의입시멘토_컨설턴트앱_B2B_제안서.pptx"
+                    className="btn-primary"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 14px', fontSize: '0.8rem', textDecoration: 'none', background: 'linear-gradient(135deg, #b91c1c 0%, #dc2626 100%)', border: 'none' }}
+                  >
+                    <Download size={14} /> B2B 제안서 Slide(PPTX)
+                  </a>
                   <a
                     href="/guides/대치수프리마_나의입시멘토_컨설턴트앱_B2B_제안서.docx"
                     download="대치수프리마_나의입시멘토_컨설턴트앱_B2B_제안서.docx"
