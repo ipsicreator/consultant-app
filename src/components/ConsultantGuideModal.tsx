@@ -22,7 +22,8 @@ export const ConsultantGuideModal: React.FC<ConsultantGuideModalProps> = ({ isOp
     { id: 7, title: '7. 컨설턴트 앱 3대 매칭 루트 실무', icon: <CheckCircle2 size={16} /> },
     { id: 8, title: '8. 플래너 연동 및 A4 추천서 인쇄', icon: <Printer size={16} /> },
     { id: 9, title: '9. 전사 공식 풋터 및 고객 지원', icon: <BookOpen size={16} /> },
-    { id: 10, title: '10. 학원 B2B 제안서 & 2-Track 모델', icon: <FileText size={16} /> }
+    { id: 10, title: '10. 학원 B2B 제안서 & 2-Track 모델', icon: <FileText size={16} /> },
+    { id: 11, title: '11. B2C 마케팅 & 숏폼 홍보 플랜', icon: <Sparkles size={16} /> }
   ];
 
   return (
@@ -432,6 +433,95 @@ export const ConsultantGuideModal: React.FC<ConsultantGuideModalProps> = ({ isOp
                       • 학부모 입시 질의 시 전문 스크립트 서면 지원
                     </p>
                     <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#f59e0b' }}>비용: 상호 맞춤 협의</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeSection === 11 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <span style={{ color: '#10b981', fontSize: '0.8rem', fontWeight: 700 }}>SECTION 11</span>
+                <h3 style={{ margin: 0, fontSize: '1.4rem', color: '#fff' }}>「나의 입시멘토」 B2C 개인 사용자 마케팅 & 비디오 홍보 계획서</h3>
+                <p style={{ margin: 0, fontSize: '0.92rem', color: '#cbd5e1' }}>
+                  2028 개편 5등급제 대비 학부모·학생 불안 해소부터 유튜브 쇼츠/인스타 릴스 5편 콘티, 1개 학기 관리제 연계 전략입니다.
+                </p>
+
+                {/* 제안서 파일 4종(PPTX/DOCX/XLSX/MD) 즉시 다운로드 바 */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '12px 16px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '10px' }}>
+                  <a
+                    href="/guides/대치수프리마_나의입시멘토_B2C_개인사용자_마케팅_및_비디오홍보_계획서.pptx"
+                    download="대치수프리마_나의입시멘토_B2C_개인사용자_마케팅_및_비디오홍보_계획서.pptx"
+                    className="btn-primary"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 14px', fontSize: '0.8rem', textDecoration: 'none', background: 'linear-gradient(135deg, #b91c1c 0%, #dc2626 100%)', border: 'none' }}
+                  >
+                    <Download size={14} /> B2C 마케팅 Slide(PPTX)
+                  </a>
+                  <a
+                    href="/guides/대치수프리마_나의입시멘토_B2C_개인사용자_마케팅_및_비디오홍보_계획서.docx"
+                    download="대치수프리마_나의입시멘토_B2C_개인사용자_마케팅_및_비디오홍보_계획서.docx"
+                    className="btn-primary"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 14px', fontSize: '0.8rem', textDecoration: 'none', background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)', border: 'none' }}
+                  >
+                    <Download size={14} /> B2C 마케팅 Word(DOCX)
+                  </a>
+                  <a
+                    href="/guides/대치수프리마_나의입시멘토_B2C_개인사용자_마케팅_및_비디오홍보_계획서.xlsx"
+                    download="대치수프리마_나의입시멘토_B2C_개인사용자_마케팅_및_비디오홍보_계획서.xlsx"
+                    className="btn-secondary"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 12px', fontSize: '0.8rem', textDecoration: 'none', borderColor: '#10b981', color: '#10b981' }}
+                  >
+                    <Download size={14} /> B2C 마케팅 Excel(XLSX)
+                  </a>
+                  <a
+                    href="/guides/대치수프리마_나의입시멘토_B2C_개인사용자_마케팅_및_비디오홍보_계획서.md"
+                    download="대치수프리마_나의입시멘토_B2C_개인사용자_마케팅_및_비디오홍보_계획서.md"
+                    className="btn-secondary"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 12px', fontSize: '0.8rem', textDecoration: 'none' }}
+                  >
+                    <FileText size={14} /> B2C 마케팅 Markdown
+                  </a>
+                </div>
+
+                {/* 숏폼 비디오 5편 핵심 요약 카드 */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '12px' }}>
+                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '10px', padding: '14px' }}>
+                    <div style={{ display: 'inline-block', background: 'rgba(239,68,68,0.15)', color: '#ef4444', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 800, marginBottom: '6px' }}>
+                      비디오 01 · 학부모 팩폭형 (42초)
+                    </div>
+                    <h4 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', color: '#fff' }}>2028 내신 1등급 10%의 충격 진실</h4>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#cbd5e1' }}>
+                      “내신 1등급 맞아도 인서울 불합격?” 1등급 2.5배 증가에 따른 세특 필수화 및 164개 대학 컷오프 기반 맞춤 해결책 제시
+                    </p>
+                  </div>
+
+                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(56,189,248,0.3)', borderRadius: '10px', padding: '14px' }}>
+                    <div style={{ display: 'inline-block', background: 'rgba(56,189,248,0.15)', color: '#38bdf8', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 800, marginBottom: '6px' }}>
+                      비디오 02 · 학생 공감형 (35초)
+                    </div>
+                    <h4 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', color: '#fff' }}>세특 마감 D-3, 챗GPT 쓰지 마라</h4>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#cbd5e1' }}>
+                      챗GPT의 나이스 기재금지어 위험성 경고 및 카카오 도서 DB 연계 1-Click 3단계 완성형 문장 도출 시연
+                    </p>
+                  </div>
+
+                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px', padding: '14px' }}>
+                    <div style={{ display: 'inline-block', background: 'rgba(16,185,129,0.15)', color: '#10b981', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 800, marginBottom: '6px' }}>
+                      비디오 03 · 10초 스피드런 (30초)
+                    </div>
+                    <h4 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', color: '#fff' }}>나이스 PDF ➔ 164개 대학 위치 진단</h4>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#cbd5e1' }}>
+                      정부24 PDF 업로드 즉시 5/9등급 자동 환산 및 상향·적정·안정 6개 대학 최신 컷오프 비교 라인업 확정
+                    </p>
+                  </div>
+
+                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '10px', padding: '14px' }}>
+                    <div style={{ display: 'inline-block', background: 'rgba(245,158,11,0.15)', color: '#f59e0b', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 800, marginBottom: '6px' }}>
+                      비디오 04 · 합격 스토리 (45초)
+                    </div>
+                    <h4 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', color: '#fff' }}>내신 3.2등급 일반고, 한양대 최초합 비결</h4>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#cbd5e1' }}>
+                      뻔한 활동 나열 탈피, 전공 필독서와 심화 가설 연계로 1등급 차이를 뒤집은 실전 학종 역전 전략
+                    </p>
                   </div>
                 </div>
               </div>
