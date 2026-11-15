@@ -737,9 +737,9 @@ useEffect(() => {
                 cursor: 'pointer'
               }}
             >
-              <option value="1month">1개월 (속성 진단)</option>
-              <option value="3month">3개월 (학기 집중 관리)</option>
-              <option value="6month">6개월 (수시 올인원 풀케어)</option>
+              <option value="1month">1개월 (수시 직전 속성 진단)</option>
+              <option value="3month">3개월 (학기 집중 케어 · 12월~2월 / 5월~8월)</option>
+              <option value="6month">6개월 (학기 풀케어 · 9월~2월 / 3월~8월)</option>
             </select>
           </div>
           <a
@@ -1832,7 +1832,7 @@ useEffect(() => {
                     <td style={{ width: '35%', padding: '7px', border: '1px solid #94a3b8' }}>{studentData?.name}</td>
                     <td style={{ width: '15%', background: '#f8fafc', fontWeight: 700, padding: '7px', border: '1px solid #94a3b8', textAlign: 'center' }}>컨설팅 과정</td>
                     <td style={{ width: '35%', padding: '7px', border: '1px solid #94a3b8' }}>
-                      {serviceTerm === '6month' ? '6개월 (수시 올인원 풀케어)' : serviceTerm === '3month' ? '3개월 (학기 집중 관리)' : '1개월 (속성 진단)'}
+                      {serviceTerm === '6month' ? '6개월 (학기 풀케어 · ~8월/~2월 종료)' : serviceTerm === '3month' ? '3개월 (학기 집중 케어 · 잔여학기)' : '1개월 (수시 직전 속성 진단)'}
                     </td>
                   </tr>
                   <tr>
