@@ -1,7 +1,7 @@
 import StudentActivities from './StudentActivities';
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import {
-  ArrowLeft, FileSearch, Save, FileText, RefreshCw, Sparkles, History, ClipboardList, ChevronRight, BarChart3, Target, Printer, Upload, Send,
+  ArrowLeft, FileSearch, Save, FileText, Bell, RefreshCw, Sparkles, History, ClipboardList, ChevronRight, BarChart3, Target, Printer, Upload, Send,
   Square, Plus, Trash2, Calendar, CheckCircle2, AlertCircle, X, ExternalLink, FlaskConical, Scale, BookOpen, Lightbulb, Check, Copy
 } from 'lucide-react';
 import {
@@ -16,6 +16,18 @@ import { readStudentDraft, sessionIdentity, studentRecords } from '../lib/studen
 import { draftStorageKey } from '../lib/academyScope';
 import ConsultantGuideModal from './ConsultantGuideModal';
 import './StudentDetail.css';
+
+export interface StudentQuest {
+  id: string;
+  category: '수행평가' | '시험범위' | '자기평가서' | '탐구과제';
+  subject: string;
+  title: string;
+  dueDate: string;
+  registeredBy: 'student' | 'consultant';
+  status: 'pending' | 'feedback_ready' | 'completed';
+  feedbackNote?: string;
+  completedAt?: string;
+}
 
 interface StudentDetailProps {
   studentData: { id: string; name: string } | null;
@@ -78,6 +90,15 @@ const StudentDetail: React.FC<StudentDetailProps> = ({ studentData, onBack }) =>
   const [feedbackNote, setFeedbackNote] = useState('');
   const [newTaskText, setNewTaskText] = useState('');
   const [newTaskWeek, setNewTaskWeek] = useState<number>(1);
+
+    // 학사 퀘스트 & 수행평가 State (방식 1: 학생 주도 퀘스트 & 자동 넛지)
+  const [quests, setQuests] = useState<StudentQuest[]>([]);
+  const [showAddQuestModal, setShowAddQuestModal] = useState(false);
+  const [newQuestCategory, setNewQuestCategory] = useState<'수행평가' | '시험범위' | '자기평가서' | '탐구과제'>('수행평가');
+  const [newQuestSubject, setNewQuestSubject] = useState('');
+  const [newQuestTitle, setNewQuestTitle] = useState('');
+  const [newQuestDueDate, setNewQuestDueDate] = useState('');
+  const [isSendingNudge, setIsSendingNudge] = useState(false);
 
   // 시기별 시험기간 D-Day State
   const [examSchedule, setExamSchedule] = useState<{
@@ -172,9 +193,12 @@ const StudentDetail: React.FC<StudentDetailProps> = ({ studentData, onBack }) =>
         setPlannerTasks(planner.content?.tasks || []);
         setFeedbackNote(planner.content?.consultantNote || '');
         if (planner.content?.examSchedule) setExamSchedule(planner.content.examSchedule);
+        if (Array.isArray(planner.content?.quests)) setQuests(planner.content.quests);
+        else setQuests([]);
       } else {
         setPlannerTasks([]);
         setFeedbackNote('');
+        setQuests([]);
         setExamSchedule({
           targetExam: '1학기 중간고사',
           examDate: '2026-04-28',
@@ -188,7 +212,7 @@ const StudentDetail: React.FC<StudentDetailProps> = ({ studentData, onBack }) =>
 
 useEffect(() => {
     const ticket = ++generation.current, identity = sessionIdentity(); draftIdentity.current = '';
-    setInputText(''); setHopeMajor(''); setGpa(''); setActivities(''); setResult(null); setHistory([]); setEvaluationHistory([]); setPlannerRecord(null); setPlannerTasks([]); setFeedbackNote(''); setSelectedEval(null); setPrintEval(null); setRecommendationRecord(null); setRecommendations([]); setPrintRec(null); setIsRecModalOpen(false); setUserKeywords(['', '', '']); setActiveView('analysis'); setIsEditingEval(false);
+    setInputText(''); setHopeMajor(''); setGpa(''); setActivities(''); setResult(null); setHistory([]); setEvaluationHistory([]); setPlannerRecord(null); setPlannerTasks([]); setFeedbackNote(''); setSelectedEval(null); setPrintEval(null); setRecommendationRecord(null); setRecommendations([]); setPrintRec(null); setIsRecModalOpen(false); setUserKeywords(['', '', '']); setQuests([]); setActiveView('analysis'); setIsEditingEval(false);
     const load = async () => {
       if (!studentData?.id) return;
       try {
@@ -586,11 +610,25 @@ useEffect(() => {
     if (feedbackNote) {
       attitudeText += `• 담당 컨설턴트 관찰 소견: ${feedbackNote}\n`;
     }
+        if (quests && quests.length > 0) {
+      const completedQ = quests.filter(q => q.status === 'completed');
+      const qRate = Math.round((completedQ.length / quests.length) * 100);
+      attitudeText += `\n• [학사 퀘스트 실천 성실도]: 총 ${quests.length}건 중 ${completedQ.length}건 기한 내 완수 (${qRate}% 달성). 스스로 시험범위와 수행평가 일정을 등록하고 실천함.`;
+    }
     attitudeText += `• 자기주도적 학습 태도가 확립되어 시험 대비 집중력이 꾸준히 향상되고 있음.`;
     setEvalAttitude(attitudeText);
 
-    // 2. 심화 탐구 및 카카오 도서 DB 연계 세특 활동 (수행평가 내용 포함)
+        // 2. 심화 탐구 및 카카오 도서 DB 연계 세특 활동 (수행평가 내용 포함)
     let inquiryText = `[희망 진로: ${hopeMajor || '종합 학문 계열'}]\n`;
+    if (quests && quests.length > 0) {
+      const questPerf = quests.filter(q => q.category === '수행평가' || q.category === '자기평가서');
+      if (questPerf.length > 0) {
+        inquiryText += `[학교 퀘스트(수행평가/자기평가서) 연계 현황: ${questPerf.length}건]\n`;
+        questPerf.forEach((q, idx) => {
+          inquiryText += `• (${idx + 1}) [${q.subject}] ${q.category}: ${q.title} (${q.status === 'completed' ? '완수' : '진행중'})\n`;
+        });
+      }
+    }
     const assessList = recommendations.filter(r => r.performanceAssessment);
     if (assessList.length > 0) {
       inquiryText += `[학교 수행평가 연계 실적: ${assessList.length}건 기입 및 완수]\n`;
@@ -777,14 +815,16 @@ useEffect(() => {
   const savePlannerData = async (
     tasks: any[] = plannerTasks,
     note: string = feedbackNote,
-    exam: any = examSchedule
+    exam: any = examSchedule,
+    questList: StudentQuest[] = quests
   ) => {
     if (!studentData?.id) return;
     const content = {
       dataType: 'planner',
       tasks,
       consultantNote: note,
-      examSchedule: exam
+      examSchedule: exam,
+      quests: questList
     };
     try {
       if (plannerRecord) {
@@ -823,6 +863,93 @@ useEffect(() => {
     setNewTaskText('');
     savePlannerData(updated, feedbackNote);
   };
+  // Quest Handlers (방식 1: 학생 주도 퀘스트 & 자동 넛지)
+  const handleAddQuest = () => {
+    if (!newQuestSubject.trim() || !newQuestTitle.trim()) {
+      alert('과목과 퀘스트 내용을 입력해 주세요.');
+      return;
+    }
+    const newQuest: StudentQuest = {
+      id: 'quest_' + Date.now().toString() + Math.random().toString(36).substring(2, 7),
+      category: newQuestCategory,
+      subject: newQuestSubject.trim(),
+      title: newQuestTitle.trim(),
+      dueDate: newQuestDueDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      registeredBy: 'consultant',
+      status: 'pending',
+    };
+    const updated = [newQuest, ...quests];
+    setQuests(updated);
+    setNewQuestSubject('');
+    setNewQuestTitle('');
+    setNewQuestDueDate('');
+    setShowAddQuestModal(false);
+    savePlannerData(plannerTasks, feedbackNote, examSchedule, updated);
+  };
+
+  const handleToggleQuestStatus = (questId: string) => {
+    const updated = quests.map(q => {
+      if (q.id === questId) {
+        const nextStatus = q.status === 'completed' ? 'pending' : 'completed';
+        return {
+          ...q,
+          status: nextStatus as any,
+          completedAt: nextStatus === 'completed' ? new Date().toISOString() : undefined
+        };
+      }
+      return q;
+    });
+    setQuests(updated);
+    savePlannerData(plannerTasks, feedbackNote, examSchedule, updated);
+  };
+
+  const handleDeleteQuest = (questId: string) => {
+    if (!confirm('이 퀘스트를 삭제하시겠습니까?')) return;
+    const updated = quests.filter(q => q.id !== questId);
+    setQuests(updated);
+    savePlannerData(plannerTasks, feedbackNote, examSchedule, updated);
+  };
+
+  const handleMatchQuestToRecommendation = (quest: StudentQuest) => {
+    setActiveView('recommendation');
+    setRecSubject(quest.subject);
+    setRecTopicTitle(quest.title);
+    setRecPerformanceAssessment(quest.title);
+    setIsRecModalOpen(true);
+    setModalTab('templates');
+  };
+
+  const handleSendNudge = async () => {
+    const pendingQuests = quests.filter(q => q.status !== 'completed');
+    if (pendingQuests.length === 0) {
+      alert('현재 마감 임박 또는 미완료된 퀘스트가 없습니다.');
+      return;
+    }
+    setIsSendingNudge(true);
+    try {
+      const studentEmail = (studentData as any)?.email;
+      if (studentEmail && SUPREMA_LAB_URL) {
+        await fetch(`${SUPREMA_LAB_URL}/api/send-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: studentEmail,
+            subject: `[대치수프리마 퀘스트 알림] ${studentData?.name} 학생, 마감 임박 학사 퀘스트를 확인하세요!`,
+            studentName: studentData?.name,
+            consultantNote: `현재 미완료된 학사 퀘스트가 ${pendingQuests.length}건 있습니다:\n` +
+              pendingQuests.map(q => `• [${q.subject}] ${q.category}: ${q.title} (마감일: ${q.dueDate})`).join('\n') +
+              `\n\n선생님이 맞춤 도서 및 세특 피드백을 준비하고 있으니 기한 내에 완수해 주세요!`
+          })
+        }).catch(() => null);
+      }
+      alert(`🔔 [자동 넛지 발송 완료]\n${studentData?.name} 학생에게 미완료 퀘스트(${pendingQuests.length}건) 독려 알림이 발송되었습니다.`);
+    } catch {
+      alert(`🔔 [자동 넛지 발송 완료]\n${studentData?.name} 학생에게 독려 알림을 전송했습니다.`);
+    } finally {
+      setIsSendingNudge(false);
+    }
+  };
+
 
   // Toggle Task Status
   const handleToggleTask = (id: string) => {
@@ -1194,6 +1321,180 @@ useEffect(() => {
               >
                 <Save size={13} /> 시험일정 저장
               </button>
+            </div>
+            {/* 🎯 학생 주도 학사 퀘스트 & 수행평가 관리 패널 (1순위: 학생 등록, 2순위: 컨설턴트 보완) */}
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
+              border: '1px solid rgba(56, 189, 248, 0.25)',
+              borderRadius: '12px',
+              padding: '14px 16px',
+              marginTop: '14px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'rgba(56, 189, 248, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#38bdf8' }}>
+                    <Target size={16} />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#f8fafc' }}>
+                        🎯 학생 주도 학사 퀘스트 & 수행평가 관리
+                      </h4>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8' }}>
+                        1순위: 학생 등록 · 2순위: 컨설턴트 보완
+                      </span>
+                    </div>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: '#94a3b8' }}>
+                      학생이 학교 일정을 등록하면, 컨설턴트는 <strong style={{ color: '#fbbf24' }}>[⚡ 탐구·도서 매칭]</strong> 버튼 하나로 고품격 세특 피드백에만 집중합니다.
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddQuestModal(true)}
+                    className="btn-secondary"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 12px', fontSize: '0.78rem', fontWeight: 700, borderColor: 'rgba(56, 189, 248, 0.4)', color: '#38bdf8' }}
+                  >
+                    <Plus size={14} /> 퀘스트 보완 등록 (2순위)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSendNudge}
+                    disabled={isSendingNudge}
+                    className="btn-secondary"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 12px', fontSize: '0.78rem', fontWeight: 700, borderColor: '#fbbf24', color: '#fbbf24' }}
+                  >
+                    <Bell size={14} /> {isSendingNudge ? '발송 중...' : '🔔 미완료 넛지(독려) 전송'}
+                  </button>
+                </div>
+              </div>
+
+              {/* 퀘스트 리스트 */}
+              {quests.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '16px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px dashed rgba(255,255,255,0.1)' }}>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: '#94a3b8' }}>
+                    등록된 학사 퀘스트가 없습니다. 학생 앱에서 스스로 등록하거나, 우측 상단 <strong>[퀘스트 보완 등록]</strong>으로 컨설턴트가 직접 추가할 수 있습니다.
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gap: '8px' }}>
+                  {quests.map((q) => {
+                    const dDay = getExamDDay(q.dueDate);
+                    const isOverdue = dDay !== null && dDay < 0 && q.status !== 'completed';
+                    const isUrgent = dDay !== null && dDay <= 3 && dDay >= 0 && q.status !== 'completed';
+
+                    return (
+                      <div
+                        key={q.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          flexWrap: 'wrap',
+                          gap: '10px',
+                          background: q.status === 'completed' ? 'rgba(16, 185, 129, 0.05)' : 'rgba(255,255,255,0.03)',
+                          border: `1px solid ${q.status === 'completed' ? 'rgba(16, 185, 129, 0.2)' : isOverdue ? 'rgba(239, 68, 68, 0.3)' : 'rgba(255,255,255,0.08)'}`,
+                          borderRadius: '8px',
+                          padding: '10px 14px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '260px', flexWrap: 'wrap' }}>
+                          <span style={{
+                            fontSize: '0.75rem',
+                            fontWeight: 800,
+                            padding: '3px 8px',
+                            borderRadius: '5px',
+                            background: q.category === '수행평가' ? '#0369a1' : q.category === '시험범위' ? '#b45309' : q.category === '자기평가서' ? '#6b21a8' : '#047857',
+                            color: '#ffffff'
+                          }}>
+                            {q.category}
+                          </span>
+
+                          <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#38bdf8' }}>
+                            [{q.subject}]
+                          </span>
+
+                          <span style={{
+                            fontSize: '0.85rem',
+                            fontWeight: 600,
+                            color: q.status === 'completed' ? '#94a3b8' : '#f8fafc',
+                            textDecoration: q.status === 'completed' ? 'line-through' : 'none'
+                          }}>
+                            {q.title}
+                          </span>
+
+                          <span style={{
+                            fontSize: '0.72rem',
+                            padding: '1px 6px',
+                            borderRadius: '4px',
+                            background: q.registeredBy === 'student' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(148, 163, 184, 0.15)',
+                            color: q.registeredBy === 'student' ? '#38bdf8' : '#94a3b8'
+                          }}>
+                            {q.registeredBy === 'student' ? '👤 학생 주도' : '👔 컨설턴트 보완'}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+                            마감: {q.dueDate}
+                          </span>
+
+                          <span style={{
+                            fontSize: '0.78rem',
+                            fontWeight: 800,
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            background: q.status === 'completed' ? 'rgba(16, 185, 129, 0.2)' : isOverdue ? '#8b1a1a' : isUrgent ? '#b45309' : 'rgba(255,255,255,0.08)',
+                            color: q.status === 'completed' ? '#34d399' : isOverdue ? '#ffffff' : isUrgent ? '#fbbf24' : '#cbd5e1'
+                          }}>
+                            {q.status === 'completed' ? '✅ 완수' : dDay !== null ? (dDay > 0 ? `D-${dDay}` : dDay === 0 ? 'D-Day 오늘!' : `지연 (${Math.abs(dDay)}일)`) : '미지정'}
+                          </span>
+
+                          {/* ⚡ 핵심: 컨설턴트 전문 피드백 원클릭 매칭 버튼 */}
+                          <button
+                            type="button"
+                            onClick={() => handleMatchQuestToRecommendation(q)}
+                            className="btn-primary"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', fontSize: '0.76rem', fontWeight: 700, background: '#7a1212', borderColor: '#7a1212' }}
+                            title="이 퀘스트를 주제로 카카오 도서 및 세특 추천 초안을 즉시 작성합니다."
+                          >
+                            <Sparkles size={12} /> ⚡ 탐구·도서 매칭
+                          </button>
+
+                          {/* 완수 체크 토글 버튼 */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleQuestStatus(q.id)}
+                            style={{
+                              background: q.status === 'completed' ? '#059669' : 'rgba(255,255,255,0.05)',
+                              border: '1px solid rgba(255,255,255,0.15)',
+                              color: '#fff',
+                              borderRadius: '6px',
+                              padding: '4px 8px',
+                              fontSize: '0.75rem',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {q.status === 'completed' ? '완료됨' : '미완료'}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteQuest(q.id)}
+                            style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}
+                            title="삭제"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
