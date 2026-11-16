@@ -13,6 +13,7 @@ export interface ConsultantRecommendation {
   coreConcept: string;
   setukDraft: string;
   consultantTip?: string;
+  performanceAssessment?: string; // 수행평가 내용 기입
   status?: 'recommended' | 'in_progress' | 'completed';
   createdAt: string;
 }

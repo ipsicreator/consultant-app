@@ -79,6 +79,17 @@ const StudentDetail: React.FC<StudentDetailProps> = ({ studentData, onBack }) =>
   const [newTaskText, setNewTaskText] = useState('');
   const [newTaskWeek, setNewTaskWeek] = useState<number>(1);
 
+  // 시기별 시험기간 D-Day State
+  const [examSchedule, setExamSchedule] = useState<{
+    targetExam: string;
+    examDate: string;
+    memo: string;
+  }>({
+    targetExam: '1학기 중간고사',
+    examDate: '2026-04-28',
+    memo: '중간고사 내신 1등급 달성 및 취약단원 오답 집중 피드백'
+  });
+
   // Evaluation States
   const [evaluationHistory, setEvaluationHistory] = useState<any[]>([]);
   const [selectedEval, setSelectedEval] = useState<any>(null);
@@ -119,6 +130,7 @@ const StudentDetail: React.FC<StudentDetailProps> = ({ studentData, onBack }) =>
   const [recCoreConcept, setRecCoreConcept] = useState('');
   const [recSetukDraft, setRecSetukDraft] = useState('');
   const [recConsultantTip, setRecConsultantTip] = useState('');
+  const [recPerformanceAssessment, setRecPerformanceAssessment] = useState('');
   const [autoAddPlanner, setAutoAddPlanner] = useState(true);
   const [autoAddPlannerWeek, setAutoAddPlannerWeek] = useState(1);
   const [isSavingRec, setIsSavingRec] = useState(false);
@@ -159,9 +171,15 @@ const StudentDetail: React.FC<StudentDetailProps> = ({ studentData, onBack }) =>
       if (planner) {
         setPlannerTasks(planner.content?.tasks || []);
         setFeedbackNote(planner.content?.consultantNote || '');
+        if (planner.content?.examSchedule) setExamSchedule(planner.content.examSchedule);
       } else {
         setPlannerTasks([]);
         setFeedbackNote('');
+        setExamSchedule({
+          targetExam: '1학기 중간고사',
+          examDate: '2026-04-28',
+          memo: '중간고사 내신 1등급 달성 및 취약단원 오답 집중 피드백'
+        });
       }
     } catch (e) {
       console.error('loadHistory error:', e);
@@ -571,8 +589,15 @@ useEffect(() => {
     attitudeText += `• 자기주도적 학습 태도가 확립되어 시험 대비 집중력이 꾸준히 향상되고 있음.`;
     setEvalAttitude(attitudeText);
 
-    // 2. 심화 탐구 및 카카오 도서 DB 연계 세특 활동 집계
+    // 2. 심화 탐구 및 카카오 도서 DB 연계 세특 활동 (수행평가 내용 포함)
     let inquiryText = `[희망 진로: ${hopeMajor || '종합 학문 계열'}]\n`;
+    const assessList = recommendations.filter(r => r.performanceAssessment);
+    if (assessList.length > 0) {
+      inquiryText += `[학교 수행평가 연계 실적: ${assessList.length}건 기입 및 완수]\n`;
+      assessList.forEach((r, idx) => {
+        inquiryText += `• (${idx + 1}) [${r.subject}] 수행평가: ${r.performanceAssessment} (연계도서: 《${r.bookTitle}》)\n`;
+      });
+    }
     if (recommendations.length > 0) {
       inquiryText += `[카카오 도서 DB 연계 탐구 및 세특 배정 현황]\n`;
       recommendations.slice(0, 3).forEach((r, idx) => {
@@ -738,31 +763,41 @@ useEffect(() => {
     setIsEditingEval(true);
   };
 
-  // Save Planner Data
-  const savePlannerData = async (tasks: any[], note: string) => {
+  const getExamDDay = (examDateStr: string) => {
+    if (!examDateStr) return null;
+    const target = new Date(examDateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    target.setHours(0, 0, 0, 0);
+    const diff = target.getTime() - today.getTime();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  };
+
+  // Save Planner Data with Exam Schedule
+  const savePlannerData = async (
+    tasks: any[] = plannerTasks,
+    note: string = feedbackNote,
+    exam: any = examSchedule
+  ) => {
     if (!studentData?.id) return;
     const content = {
       dataType: 'planner',
       tasks,
-      consultantNote: note
+      consultantNote: note,
+      examSchedule: exam
     };
     try {
       if (plannerRecord) {
         if (!studentData?.id) throw new Error('학생을 먼저 선택해 주세요.');
-
         await requireStudentAccess(studentData.id);
-
-        await studentRecords(studentData?.id).update(plannerRecord.id, { content });
+        await studentRecords(studentData.id).update(plannerRecord.id, { content });
       } else {
-        const newRecord = await studentRecords(studentData?.id).create({
-          student_id: studentData.id,
-          content
-        });
-        setPlannerRecord(newRecord);
+        if (!studentData?.id) throw new Error('학생을 먼저 선택해 주세요.');
+        await requireStudentAccess(studentData.id);
+        const created = await studentRecords(studentData.id).create({ student_id: studentData.id, content });
+        setPlannerRecord(created);
       }
-
-      // Reload history to keep records updated
-      const records = await studentRecords(studentData?.id).getFullList({
+      const records = await studentRecords(studentData.id).getFullList({
         filter: `student_id = "${studentData.id}"`,
         sort: '-created',
       });
@@ -1095,9 +1130,71 @@ useEffect(() => {
 
       {activeView === 'planner' && (
         <div className="planner-view-container glass-panel" style={{ padding: '20px', flex: 1, overflow: 'auto' }}>
-          <div className="planner-header-bar" style={{ marginBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px' }}>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}><ClipboardList size={20} className="accent-color" /> {studentData?.name} 학생의 밀착 학습/탐구 계획표</h3>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>주차별 과제를 세우고, 학생이 완료하면 탐구 결과물 문서를 업로드해 보관합니다.</span>
+          <div className="planner-header-bar" style={{ marginBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
+              <div>
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}><ClipboardList size={20} className="accent-color" /> {studentData?.name} 학생의 밀착 학습/탐구 계획표</h3>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>주차별 과제를 세우고, 시기별 시험기간 D-Day에 맞춰 수행평가 및 탐구 결과물을 관리합니다.</span>
+              </div>
+            </div>
+
+            {/* 시기별 시험기간 D-Day 배너 설정 바 */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Target size={16} color="#fbbf24" />
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#f8fafc' }}>시기별 시험기간:</span>
+                  <select
+                    value={examSchedule.targetExam}
+                    onChange={(e) => setExamSchedule({ ...examSchedule, targetExam: e.target.value })}
+                    style={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', borderRadius: '6px', padding: '4px 8px', fontSize: '0.82rem', fontWeight: 600 }}
+                  >
+                    <option value="1학기 중간고사">1학기 중간고사 (4월 말~5월 초)</option>
+                    <option value="1학기 기말고사">1학기 기말고사 (7월 초)</option>
+                    <option value="2학기 중간고사">2학기 중간고사 (9월 말~10월 초)</option>
+                    <option value="2학기 기말고사">2학기 기말고사 (12월 초)</option>
+                    <option value="6월 모의평가">6월 수능 모의평가</option>
+                    <option value="9월 모의평가">9월 수능 모의평가</option>
+                    <option value="대학수학능력시험">11월 대학수학능력시험 (수능)</option>
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>시험일:</span>
+                  <input
+                    type="date"
+                    value={examSchedule.examDate}
+                    onChange={(e) => setExamSchedule({ ...examSchedule, examDate: e.target.value })}
+                    style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', borderRadius: '6px', padding: '3px 8px', fontSize: '0.8rem' }}
+                  />
+                </div>
+
+                {(() => {
+                  const dDay = getExamDDay(examSchedule.examDate);
+                  return (
+                    <span style={{
+                      fontSize: '0.85rem',
+                      fontWeight: 800,
+                      padding: '2px 10px',
+                      borderRadius: '6px',
+                      background: dDay !== null && dDay <= 21 && dDay >= 0 ? '#8b1a1a' : 'rgba(56, 189, 248, 0.2)',
+                      color: dDay !== null && dDay <= 21 && dDay >= 0 ? '#ffffff' : '#38bdf8'
+                    }}>
+                      {dDay !== null ? (dDay > 0 ? `🎯 D-${dDay}` : dDay === 0 ? '🎯 D-Day 오늘 시험!' : `시험종료 (${Math.abs(dDay)}일 전)`) : '일정 미지정'}
+                    </span>
+                  );
+                })()}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => savePlannerData(plannerTasks, feedbackNote, examSchedule).then(() => alert('시험기간 일정이 저장되었습니다.'))}
+                className="btn-secondary"
+                style={{ padding: '5px 12px', fontSize: '0.78rem' }}
+              >
+                <Save size={13} /> 시험일정 저장
+              </button>
+            </div>
           </div>
 
           <div className="planner-content-grid" style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: '20px' }}>
@@ -1978,6 +2075,11 @@ useEffect(() => {
                     <strong style={{ color: '#b45309' }}>💡 추천 세특 문장:</strong>
                     <p style={{ margin: '3px 0 0 0', color: '#1e293b', fontSize: '0.82rem', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{item.setukDraft}</p>
                   </div>
+                  {item.performanceAssessment && (
+                    <div style={{ fontSize: '0.8rem', color: '#0369a1', background: '#f0f9ff', padding: '6px 10px', borderRadius: '4px', border: '1px solid #bae6fd', marginBottom: '6px' }}>
+                      <strong>📝 수행평가 연계:</strong> {item.performanceAssessment}
+                    </div>
+                  )}
                   {item.consultantTip && (
                     <div style={{ fontSize: '0.8rem', color: '#64748b', background: '#fff', padding: '6px 10px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
                       <strong>📋 지도 조언:</strong> {item.consultantTip}
