@@ -103,8 +103,11 @@ test('admission decisions preserve exact lab identity and held judgement', async
   try { global.fetch = async (url, options) => { assert.equal(url, 'https://suprema-lab.vercel.app/api/diagnosis'); const body = JSON.parse(options.body); assert.deepEqual(body, { studentIndex: 2.5, gradingSystem: '9-level', choices: [{ university: '대학(캠퍼스)', department: '수학과', admission_type: '교과', track_name: '일반전형' }] }); return Response.json({ results: [{ level: '판단 보류', comment: '명시적인 비교 근거 없음' }] }); }; assert.deepEqual(await api.requestAdmissionDiagnosis(2.5, '9-level', { univ: '대학(캠퍼스)', dept: '수학과', type: '교과', name: '일반전형' }), { level: '판단 보류', reason: '명시적인 비교 근거 없음' }); } finally { global.fetch = original; }
 });
 
-test('master profile uses only Google entry and never receives academy password-session scope',()=>{
- assert.throws(()=>scope.profileScope({id:'profile-master',user:'master-user',academy_id:'academy-a',role:'master'},'master-user'),/마스터는 Google 로그인/);
- assert.equal(scope.canManageAcademy({...manager,role:'master'}),false);
- assert.equal(scope.canManageAcademy({...manager,role:'admin'}),true);
+test('master profile in consultant app has full access across manager and consultant actions', () => {
+  const masterScope = scope.profileScope({ id: 'profile-master', user: 'master-user', academy_id: 'academy-a', role: 'master' }, 'master-user');
+  assert.equal(masterScope.role, 'master');
+  assert.equal(scope.canManageAcademy(masterScope), true);
+  assert.equal(scope.canManageAcademy({ ...manager, role: 'master' }), true);
+  assert.equal(scope.canManageAcademy({ ...manager, role: 'admin' }), true);
+  assert.equal(scope.canManageAcademy({ ...manager, role: 'consultant' }), false);
 });

@@ -32,7 +32,7 @@ export default function Sidebar({ currentView, onNavigate }: SidebarProps) {
       try {
         const profile = await requireAcademyScope();
         setManager(canManageAcademy(profile));
-        setRoleLabel(profile.role === 'consultant' ? '담당 컨설턴트' : '학원 관리자');
+        setRoleLabel(profile.role === 'master' ? '총괄 마스터' : profile.role === 'admin' ? '학원 관리자' : '담당 컨설턴트');
         if (profile?.name) setUserName(profile.name);
         else setUserName(String((pb.authStore.model as any)?.email || '사용자').split('@')[0]);
       } catch (error) {
